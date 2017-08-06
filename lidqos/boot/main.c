@@ -47,6 +47,7 @@ int main(int argc, char **args)
 		//代码段描述
 		gdt->p_dpl_type_a = 0x9a;
 	}
+	//如果是数据段
 	else 
 	{
 		//数据段描述
