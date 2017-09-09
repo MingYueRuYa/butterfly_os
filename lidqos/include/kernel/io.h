@@ -10,7 +10,7 @@
  /*
   * 关中断
   */
-#define cli() \
+#define cli() }\
  	({__asm__ volatile("cli");})
 	
 /*
@@ -18,6 +18,12 @@
  */
 #define sti() \
 	({__asm__ volatile("sti");})
+
+/*
+ * hlt
+ */
+#define hlt() \
+({ __asm__ volatile("hlt"); })
 	
 /*
  * 载入gdt
@@ -25,6 +31,14 @@
 #define load_gdt(gdtp) \
 	({ \
 	__asm__ volatile("lgdt %0" :: "m"(gdtp)); \
+	})
+
+/*
+ * 载入idt
+ * */
+#define load_idt(idtp) \
+	({ \
+		__asm__ volatile("lidt %0"::"m"(idtp))	\
 	})
 	
 /*
