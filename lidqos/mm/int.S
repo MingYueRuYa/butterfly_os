@@ -30,10 +30,14 @@ _isr:
 .section .text
 
 //默认中断程序
+_int_default:
+	iret
+//除零错
 _int_0x00:
 	//关中断
 	cli
 	//C函数中参数和变量所用的栈
+	//暂时不用，但以后会慢慢用到
 	push %ebp
 	mov %esp, %ebp
 	//调用C函数来处理这个异常	
@@ -200,7 +204,16 @@ _int_0x80:
 	sti
 	iret
 
-nt_0x82:
+_int_0x81:
+	cli
+	push	%ebp
+	mov 	%esp, %ebp
+
+	leave
+	sti
+	iret
+
+_int_0x82:
 	cli
 	push	%ebp
 	mov		%esp, %ebp

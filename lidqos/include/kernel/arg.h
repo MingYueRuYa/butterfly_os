@@ -1,5 +1,5 @@
-#ifndef _INCLUDE_KERNEL_ARG_H
-#define _INCLUDE_KERNEL_ARG_H
+#ifndef _INCLUDE_KERNEL_ARG_H_
+#define _INCLUDE_KERNEL_ARG_H_
 
 #include <kernel/typedef.h>
 

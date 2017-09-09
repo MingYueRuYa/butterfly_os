@@ -51,7 +51,7 @@ _boot:
     //测试，如果显示字符a说明程序执行正常
     //calll _display_ASCII
 
-    //调用__SEG_MAIN处的main()
+    //调用_SEG_MAIN处的main()
     calll main
 _boot_end: nop
 
@@ -204,4 +204,4 @@ _to_the_protect_mode_end: nop
 .word 0xaa55
 //一共0x200个字节
 
-#endif //_BOOT_S
+#endif

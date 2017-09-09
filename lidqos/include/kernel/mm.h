@@ -9,15 +9,15 @@
 
 #include <kernel/typedef.h>
 
-//全局中断描述符
+//全局中断符
 #define IDT_MAX_SIZE (0xff)
 
 //内核代码选择子
 #define DT_INDEX_KERNEL_CS	(0x8)
-//内核数据选择字
+//内核数据选择子
 #define GDT_INDEX_KERNEL_DS	(0x10)
 
-//中断程序
+//中断程序数
 #define ISR_COUNT			(0x30)
 //跳过空的中断数
 #define ISR_EMPTY			(0x50)
@@ -39,7 +39,7 @@ extern void _int_default();
 extern void (*_isr[ISR_COUNT])(void);
 
 /*
- * addr_to_idt: 将32位物理地址装为IDT描述符
+ * addr_to_idt: 将32位物理地址转为IDT描述符
  *  - u16 selector: 选择子
  *  - u32 addr: 中断程序所在的物理地址
  *  - s_idt *idt:中断描述符
@@ -48,7 +48,7 @@ extern void (*_isr[ISR_COUNT])(void);
 void addr_to_idt(u16 selector, u32 addr, s_idt *idt);
 
 /*
- * install_idt: 安装IDT全局描述符idt: 安装IDT全局描述符
+ * install_idt: 安装IDT全局描述符
  * return: void
  * */
 void install_idt();
@@ -59,4 +59,4 @@ void install_idt();
  * */
 void install_pic();
 
-#endif //_MM_H_
+#endif

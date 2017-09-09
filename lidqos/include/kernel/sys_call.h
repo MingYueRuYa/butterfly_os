@@ -13,4 +13,4 @@
 
 void int_div_error();
 
-#endif //_SYS_CALL_H
+#endif

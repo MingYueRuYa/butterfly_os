@@ -57,7 +57,7 @@ typedef iso_struct iso;
 typedef iso_boot_catalog iso_boot;
 
 
-void str_copy(char *to, char *from, int len)
+void str_copy(char *to, const char *from, int len)
 {
     int i=0;
     for (; i<len; ++i) {

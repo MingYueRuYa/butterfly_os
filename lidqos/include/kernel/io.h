@@ -2,15 +2,15 @@
  * 端口输入输出头文件
  */
  
- #ifndef _IO_H
- #define _IO_H
+ #ifndef _IO_H_
+ #define _IO_H_
  
  #include <kernel/typedef.h>
  
  /*
   * 关中断
   */
-#define cli() }\
+#define cli() \
  	({__asm__ volatile("cli");})
 	
 /*
@@ -23,14 +23,14 @@
  * hlt
  */
 #define hlt() \
-({ __asm__ volatile("hlt"); })
+	({ __asm__ volatile("hlt"); })
 	
 /*
  * 载入gdt
  */
 #define load_gdt(gdtp) \
 	({ \
-	__asm__ volatile("lgdt %0" :: "m"(gdtp)); \
+		__asm__ volatile("lgdt %0" :: "m"(gdtp)); \
 	})
 
 /*
@@ -38,7 +38,7 @@
  * */
 #define load_idt(idtp) \
 	({ \
-		__asm__ volatile("lidt %0"::"m"(idtp))	\
+		__asm__ volatile("lidt %0"::"m"(idtp));	\
 	})
 	
 /*
@@ -56,12 +56,16 @@ static inline u8 inb_p(u16 port)
 {
 	u8 val;
 	__asm__ volatile("inb %%dx, %%al" : "=a"(val) : "dx"(port));
+	return val;
 }
 
 static inline u16 ds()
 {
 	u16 ds;
-	__asm__ volatile("movw %%ds, %0" : "=a" (ds) : );
+	__asm__ volatile("movw	%%ds, %0" : "=a" (ds) : );
 	return ds;
+//	u16 ds;
+//	__asm__ volatile("movw %%ds, %0" : "=a" (ds) : );
+//	return ds;
 }
  #endif //_IO_H

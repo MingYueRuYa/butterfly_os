@@ -1,18 +1,28 @@
 #include <kernel/kernel.h>
-#include <kernel/printf.h>
 
 //全局字符串指针变量
 char *str = "Hello World!";
 
-//内核启动程序入口
+//????????
 int start_kernel(int argc, char **args)
 {
-    u32 no = 0x12051204; 
-    int age = 25;
-    char ch = 'B';
-    char *msg = "Lidq school number is %x.\nThis year he is %d years old.\nHe got an %c on his test points.\n";
-    printf(msg, no, age, ch); 
-
+    printf("Welcome to LidqOS.\n");
+	
+   	//安装内存申请模块
+	install_alloc();
+	
+	//安装8259A
+	install_pic();
+	
+	//安装ISR中断服务程序
+	install_idt();
+	
+	//开中断，在进入保护模式前已经关闭了中断这时需要将其打开
+	sti();
+	
+	int a = 1, b = 0, c;
+	c = a / b;
+	
     //永无休止的循环
     for (;;)
     {

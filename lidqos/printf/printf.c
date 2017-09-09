@@ -1,3 +1,6 @@
+#ifndef _KPRINTF_C_
+#define _KPRINTF_C_
+
 #include <kernel/printf.h>
 
 /*
@@ -12,6 +15,13 @@ void set_cursor(u16 x, u16 y)
 	{
 		x = 0;
 		y++;
+	}
+	//纵坐标超出25滚屏
+	if (y >= 25)
+	{
+		x = 0;
+		y = 25 - 1;
+		scroll_up(1);
 	}
     //计算光标的线性位置
     u16 cursor_pos = y * 80 + x;
@@ -43,6 +53,25 @@ u16 get_cursor()
     return (cursor_pos_h << 8) | cursor_pos_l;
 }
 
+
+
+/*
+ * scroll_up : 向上滚屏
+ *  - int int row : 行数
+ * return : void
+ */
+void scroll_up(int row)
+{
+	u16 *p = (u16 *) 0xb8000;
+	for (int i = 0; i < 80; ++i)
+	{
+		for (int j = 0; j < 25; ++j)
+		{
+			*(p + j * 80 + i) = *(p + (j + 1) * 80 + i);
+		}
+	}
+}
+
 /*
  * 根据一个字符的ascii显示到指定位置
  * u16 x:横坐标
@@ -51,7 +80,7 @@ u16 get_cursor()
  * */
 void putascii(u16 x, u16 y, char ch)
 {
-    //定义显存的位置
+    //定义显存地址
     char *video_addr = (char *)0xb8000;
     //写入显存
     u32 where = (y * 80 + x) * 2;
@@ -59,6 +88,7 @@ void putascii(u16 x, u16 y, char ch)
     u8 *p = (u8 *)(video_addr) + where;
     //字符的ascii码
     *p = ch;
+	//颜色
     *(p+1) = 0x07;
 }
 
@@ -235,3 +265,4 @@ int printf(char *fmt, ...)
     }
     return count;
 }
+#endif
