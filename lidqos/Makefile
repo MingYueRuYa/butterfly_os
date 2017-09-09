@@ -25,7 +25,7 @@ DD = dd
 
 #gcc参数，编译32位代码
 #-mpreferred-stack-boundary=2
-GC_PARAMS		= -fno-builtin -Iinclude -c -m32 -std=c99
+GC_PARAMS		= -fno-builtin -Iinclude -c -m32 -std=c99 -fno-stack-protector
 GC_B_PARAMS 	= $(GC_PARAMS)
 GC_K_PARAMS		= $(GC_PARAMS)
 GC_S_PARAMS		= $(GC_PARAMS)
