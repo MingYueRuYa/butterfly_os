@@ -21,7 +21,7 @@
 //内存页大小4096B
 #define MM_PAGE_SIZE    (4*1024)
 //内存总页数
-#define MAP_SIZE        (1024*1204)
+#define MAP_SIZE        (1024*1024)
 //内核程序大小256页 256*4096 = 1MB
 #define KERNEL_SIZE     (0x100)
 //MMAP所在的内存地址为0x400000 ~ 0x4fffff
