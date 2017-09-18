@@ -34,139 +34,359 @@ _int_default:
 	iret
 //除零错
 _int_0x00:
+	pushal
+	pushfl
 	//关中断
 	cli
 	//C函数中参数和变量所用的栈
-	//暂时不用，但以后会慢慢用到
 	push %ebp
 	mov %esp, %ebp
 	//调用C函数来处理这个异常	
 	call int_div_error
 	leave
 	sti
+	popfl
+	popal
 	iret
 
+//调试异常
 _int_0x01:
+	pushal
+	pushfl
+	//关中断
+	cli
+	//C函数中参数和变量所用的栈
+	push %ebp
+	mov %esp, %ebp
+	//调用C函数来处理这个异常
+	call int_debug_error
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//不可屏蔽中断
 _int_0x02:
+	pushal
+	pushfl
+	//关中断
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_nmi
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//断电
 _int_0x03:
+	pushal
+	pushfl
+	//关中断
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_power_down
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//上溢出
 _int_0x04:
+	pushal
+	pushfl
+	//关中断
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_bound_out
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//边界检查
 _int_0x05:
+	pushal
+	pushfl
+	//关中断
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_bound_check
+	leave
+	sti
+	popfl
+	popal
 	iret
+
 
 //无效操作码
 _int_0x06:
+	pushal
+	pushfl
+	//关中断
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_invalid_opcode
+	leave
+	sti
+	popfl
+	popal
 	iret
+
 
 //没有浮点运算器
 _int_0x07:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call 	int_no_fpu
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+
+//双重错误
 _int_0x08:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call 	int_double_error
+	leave
+	sti
+	popfl
+	popal
 	iret
-
+//浮点运算器段超限
 _int_0x09:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_fpu_out
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//无效TSS
 _int_0x0a:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_tss_error
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+
+//无效段
 _int_0x0b:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_section_error
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//无效栈
 _int_0x0c:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_stack_error
+	leave
+	sti
+	popfl
+	popal
 	iret
+
 
 //一般保护错误
 _int_0x0d:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_protection_error
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+//页错误
 _int_0x0e:
-	//call isr_0x0e
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_page_error
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+
+//保留
 _int_0x0f:
-	//call isr_0x0f
 	iret
 
-//无效浮点运算器
+//浮点运算器错误
 _int_0x10:
+	pushal
+	pushfl
+	cli
+	//C函数中参数和变量所用的栈
+	push	%ebp
+	mov		%esp, %ebp
+	//调用C函数来处理这个异常
+	call	int_fpu_error
+	leave
+	sti
+	popfl
+	popal
 	iret
 
+
+//保留
 _int_0x11:
 	iret
 
+//保留
 _int_0x12:
 	iret
 
+//保留
 _int_0x13:
 	iret
 
+//保留
 _int_0x14:
 	iret
 
+//保留
 _int_0x15:
 	iret
 
+//保留
 _int_0x16:
 	iret
 
+//保留
 _int_0x17:
 	iret
 
+//保留
 _int_0x18:
 	iret
 
+//保留
 _int_0x19:
 	iret
 
+//保留
 _int_0x1a:
 	iret
 
+//保留
 _int_0x1b:
 	iret
 
+//保留
 _int_0x1c:
 	iret
 
 _int_0x1d:
 	iret
 
+//保留
 _int_0x1e:
 	iret
 
+//保留
 _int_0x1f:
 	iret
 
 //时钟中断
 _int_0x20:
-	cli
 	pushal
 	pushfl
+	cli
 	//调用时钟中断处理函数
 	call int_timer
+	sti
 	popfl
 	popal
-	sti
+
 	iret
 
 //键盘中断
 _int_0x21:
-	cli
 	pushal
 	pushfl
+	cli
 	//调用键盘中断处理函数
 	call int_keyboard
+	sti
 	popfl
 	popal
-	sti
 	iret
 
 _int_0x22:
@@ -212,21 +432,9 @@ _int_0x2f:
 	iret
 
 _int_0x80:
-	cli
-	push %ebp
-	mov %esp, %ebp
-	
-	leave
-	sti
 	iret
 
 _int_0x81:
-	cli
-	push	%ebp
-	mov 	%esp, %ebp
-
-	leave
-	sti
 	iret
 
 _int_0x82:
@@ -293,7 +501,6 @@ _int_0x88:
 	sti
 	iret
 
-//文件块数据操作
 _int_0x89:
 	push	%ebp
 	mov 	%esp, %ebp
@@ -454,4 +661,3 @@ _int_0x9f:
 
 	leave
 	iret
-

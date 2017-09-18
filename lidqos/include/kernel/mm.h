@@ -9,14 +9,20 @@
 
 #include <kernel/typedef.h>
 
+//全局描述符个数
+#define GDT_MAX_SIZE (0xff)
 //全局中断符
 #define IDT_MAX_SIZE (0xff)
 
 //内核代码选择子
-#define DT_INDEX_KERNEL_CS	(0x8)
+#define GDT_INDEX_KERNEL_CS	(0x10)
 //内核数据选择子
-#define GDT_INDEX_KERNEL_DS	(0x10)
+#define GDT_INDEX_KERNEL_DS	(0x18)
 
+//ldt代码段选择子
+#define USER_CODE_SEL	0x7
+//ldt数据段选择子
+#define USER_DATA_SEL	0x0f
 //中断程序数
 #define ISR_COUNT			(0x30)
 //跳过空的中断数
@@ -28,6 +34,44 @@
 
 //时钟频率100hz
 #define TIMER_FREQUENCY				(100)
+
+//GDT类型代码段
+#define GDT_TYPE_CS			(0)
+//GDT类型数据段
+#define GDT_TYPE_DS			(1)
+//LDT类型代码段
+#define LDT_TYPE_CS			(2)
+//LDT类型数据段
+#define LDT_TYPE_DS			(3)
+//GDT类型任务段
+#define GDT_TYPE_TSS		(4)
+//GDT类型LDT段
+#define GDT_TYPE_LDT		(5)
+//GDT长度单位byte
+#define GDT_G_BYTE			(0)
+//GDT长度单位kb
+#define GDT_G_KB			(1)
+//tts的全局选择子
+#define GDT_INDEX_TSS		0x20
+//ldt的全局选择子
+#define GDT_INDEX_LDT		0x28
+
+/*
+ * install_gdt : 安装GDT全局描述符
+ * return : void
+ */
+void install_gdt();
+
+/*
+ * addr_to_gdt : 将32位物理地址转为gdt描述符
+ *  - u32 addr:物理地址
+ * 	- s_gdt *gdt : GDT描述符
+ *  - u8 cs_ds : 0为cs,  1为ds
+ * return : void
+ */
+ void addr_to_gdt(u8 gdt_type, u32 addr, s_gdt *gdt, u8 limit_type, u32 limit);
+ 
+
 /*
  * _int_default: 默认中断程序
  * return: void
@@ -50,6 +94,14 @@ extern void (*_isr[ISR_COUNT])(void);
 void addr_to_idt(u16 selector, u32 addr, s_idt *idt);
 
 /*
+ * addr_to_idt_syscall : 将32位物理地址转为IDT描述符
+ *  - u16 selector: 选择子
+ *  - u32 addr: 系统中断程序所在的物理地址
+ *  - s_idt *idt: 中断描述符
+ */
+void addr_to_idt_syscall(u16 selector, u32 addr, s_idt *idt);
+
+/*
  * install_idt: 安装IDT全局描述符
  * return: void
  * */
@@ -66,4 +118,12 @@ void install_pic();
  * return: void
  */
  void install_timer();
+ 
+ /*
+  * install_kb ：安装键盘中断
+  * return : void
+  */
+ void install_kb();
+ 
+ void mmcopy(void *from, void *to, u32 n);
 #endif
