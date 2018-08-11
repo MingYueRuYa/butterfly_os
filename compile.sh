@@ -16,7 +16,7 @@ else
     exit
 fi
 
-nasm boot.asm -o ./bin/boot.bat
+nasm boot_readstring_from_sector.asm -o ./bin/boot.bat
 if [ "0" -eq $? ]; then
     echo -e "\033[32m compile boot.asm successful \033[0m"
 else
