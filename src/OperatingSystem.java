@@ -7,71 +7,46 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
-
+/*
+ * 1.先将内核写入软盘的0 head，0 cylinder，1 sector
+ * 2.再将显示的信息写入到0 head，0 cylinder，2 sector
+ * */
 public class OperatingSystem {
-    private int[] imgContent = new int[]{
-        0xeb,0x4e,0x90,0x48,0x45,0x4c,0x4c,0x4f,0x49,0x50,0x4c,0x00,0x02,0x01,0x01,0x00,0x02,0xe0,
-        0x00,0x40,0x0b,0xf0,0x09,0x00,0x12,0x00,0x02,0x00,0x00,0x00,0x00,0x00,0x40,0x0b,0x00,0x00,0x00,0x00,0x29,
-        0xff,0xff,0xff,0xff,0x48,0x45,0x4c,0x4c,0x4f,0x2d,0x4f,0x53,0x20,0x20,0x20,0x46,0x41,0x54,0x31,0x32,
-        0x20,0x20,0x20,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0xb8,0x00,0x00,0x8e,
-        0xd0,0xbc,0x00,0x7c,0x8e,0xd8,0x8e,0xc0,0xbe,0x74,0x7c,0x8a,
-        0x04,0x83,0xc6,0x01,0x3c,0x00,0x74,0x09,0xb4,0x0e,0xbb,0x0f,0x00,0xcd,0x10,0xeb,0xee,0xf4,0xeb,0xfd
-    };
+    private Floppy  floppyDisk = new Floppy();
 
-    private ArrayList<Integer> imgByteToWrite = new ArrayList<Integer>();
-
-    private void readKernelFromFile(String fileName) {
+    private void writeFileToFloppy(String fileName) {
         File file = new File(fileName);
         InputStream in = null;
 
         try {
             in = new FileInputStream(file);
-            int tempbyte;
-            while ((tempbyte = in.read()) != -1) {
-                imgByteToWrite.add(tempbyte);
+            byte[] buf = new byte[512];
+            buf[510] = 0x55;
+            buf[511] = (byte)0xaa;
+            if (in.read(buf) != -1) {
+                // 将内核读入到磁盘第0面，第0柱面，第1扇区
+                floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0,
+                                        0, 1, buf);
             }
         } catch(IOException e) {
             e.printStackTrace();
             return;
         }
-
-        imgByteToWrite.add(0x55);
-        imgByteToWrite.add(0xaa);
-        imgByteToWrite.add(0xf0);
-        imgByteToWrite.add(0xff);
-        imgByteToWrite.add(0xff);
-
     }
 
     public OperatingSystem(String s) {
-        readKernelFromFile("boot.bat");
-
-        int len = 0x168000;
-        int curSize = imgByteToWrite.size();
-        for (int l = 0; l < len - curSize; l++) {
-            imgByteToWrite.add(0);
-        }
-
+        writeFileToFloppy(s);
     }
 
-    public void makeFllopy()   {
-        try {
-            DataOutputStream out = new DataOutputStream(
-                                        new FileOutputStream("system.img"));
-            for (int i = 0; i < imgByteToWrite.size(); i++) {
-                out.writeByte(imgByteToWrite.get(i).byteValue());
-            }
-        } catch (Exception e) {
-            // TODO Auto-generated cath block
-            e.printStackTrace();
-        }
-
+    public void makeFloppy()   {
+        String s = "This is a text from cylinder 0 and sector 2";
+        floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0, 
+                                0, 2, s.getBytes());
+        floppyDisk.makeFloppy("system.img");
     }
 
     public static void main(String[] args) {
-        OperatingSystem op = new OperatingSystem(
-                "hello, this is my first line of my operating system mode");
-
-        op.makeFllopy();
+        OperatingSystem op = new OperatingSystem("boot.bat");
+        op.makeFloppy();
     }
 }

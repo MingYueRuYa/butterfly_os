@@ -24,8 +24,7 @@ else
     exit
 fi
 
-javac src/OperatingSystem.java -d ./bin/
-javac src/Floppy.java -d ./bin/
+javac src/OperatingSystem.java src/Floppy.java  -d ./bin/
 
 cd ./bin
 if [ "0" -eq $? ]; then
@@ -35,5 +34,11 @@ else
     exit
 fi
 java  OperatingSystem
+if [ "0" -eq $? ]; then
+    echo -e "\033[32m java  OperatingSystem successful \033[0m"
+else
+    echo -e "\033[31m java  OperatingSystem error\033[0m"
+    exit
+fi
 cd ..
 echo -e "\033[32m generate successful \033[0m"
