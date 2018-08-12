@@ -8,26 +8,43 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 /*
- * 1.先将内核写入软盘的0 head，0 cylinder，1 sector
- * 2.再将显示的信息写入到0 head，0 cylinder，2 sector
+ * 增加bootloader，读取kernel
  * */
 public class OperatingSystem {
     private Floppy  floppyDisk = new Floppy();
+    private int MAX_SECTOR_NUM = 18;
+    
 
-    private void writeFileToFloppy(String fileName) {
+    private void writeFileToFloppy(String fileName,
+                                    boolean bootable,
+                                    int cylinder,
+                                    int beginSec) {
         File file = new File(fileName);
         InputStream in = null;
 
         try {
             in = new FileInputStream(file);
             byte[] buf = new byte[512];
-            buf[510] = 0x55;
-            buf[511] = (byte)0xaa;
-            if (in.read(buf) != -1) {
-                // 将内核读入到磁盘第0面，第0柱面，第1扇区
-                floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0,
-                                        0, 1, buf);
+            if (bootable) {
+                buf[510] = 0x55;
+                buf[511] = (byte)0xaa;
             }
+//            if (in.read(buf) != -1) {
+//                // 将内核读入到磁盘第0面，第0柱面，第1扇区
+//                floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0,
+//                                        cylinder, beginSec, buf);
+//            }
+            
+            while (in.read(buf) > 0) {
+                floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0,
+                                        cylinder, beginSec, buf);
+                beginSec++;
+                if (beginSec > MAX_SECTOR_NUM) {
+                    beginSec = 1;
+                    cylinder++;
+                }
+            }
+
         } catch(IOException e) {
             e.printStackTrace();
             return;
@@ -35,13 +52,11 @@ public class OperatingSystem {
     }
 
     public OperatingSystem(String s) {
-        writeFileToFloppy(s);
+        writeFileToFloppy(s, true, 0, 1);
     }
 
     public void makeFloppy()   {
-        String s = "This is a text from cylinder 0 and sector 2";
-        floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0, 
-                                0, 2, s.getBytes());
+        writeFileToFloppy("kernel.bat", false, 1, 2);
         floppyDisk.makeFloppy("system.img");
     }
 
