@@ -11,7 +11,7 @@ public class Floppy {
 
     public int SECTOR_SIZE      = 512;
     public int SECTORS_COUNT    = 18;
-    public int CYLINDER_COUNT   = 512;
+    public int CYLINDER_COUNT   = 80;
 
     private MAGNETIC_HEAD magneticHead = MAGNETIC_HEAD.MAGNETIC_HEAD_0;
     private int current_sector      = 0;
@@ -122,7 +122,7 @@ public class Floppy {
             for (int cylinder = 0; cylinder < CYLINDER_COUNT; ++cylinder) {
                 // 2 head
                 for (int head = 0; 
-                        head < MAGNETIC_HEAD.MAGNETIC_HEAD_1.ordinal();
+                        head <= MAGNETIC_HEAD.MAGNETIC_HEAD_1.ordinal();
                         head++) {
                     // 18 sector
                     for (int sector = 1; sector <= SECTORS_COUNT; ++sector) {
