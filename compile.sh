@@ -1,5 +1,14 @@
 #!/bin/bash
 
+ShowTip() {
+    if [ "0" -eq $? ]; then
+        echo -e "\033[32m $1 \033[0m"
+    else
+        echo -e "\033[31m $2 \033[0m"
+        exit
+    fi
+}
+
 if [ "$1"x = "clear"x ]; then
     rm -rf ./bin
     echo -e "\033[32m clear successful \033[0m"
@@ -8,38 +17,19 @@ fi
 
 
 mkdir -p bin
-
-if [ "0" -eq $? ]; then
-    echo -e "\033[32m create bin dir successful \033[0m"
-else
-    echo -e "\033[31m create bin dir error \033[0m"
-    exit
-fi
+ShowTip "create bin dir successful" "create bin dir error"
 
 nasm boot.asm -o ./bin/boot.bat
+ShowTip "compile boot.asm successful" "compile boot.asm error"
+
 nasm kernel.asm -o ./bin/kernel.bat
-if [ "0" -eq $? ]; then
-    echo -e "\033[32m compile boot.asm successful \033[0m"
-else
-    echo -e "\033[31m compile boot.asm error \033[0m"
-    exit
-fi
+ShowTip "compile kernel.asm successful" "compile kernel.asm error"
 
 javac src/OperatingSystem.java src/Floppy.java  -d ./bin/
-
 cd ./bin
-if [ "0" -eq $? ]; then
-    echo -e "\033[32m java  OperatingSystem \033[0m"
-else
-    echo -e "\033[31m java  OperatingSystem\033[0m"
-    exit
-fi
+ShowTip "java  OperatingSystem" "java  OperatingSystem"
 java  OperatingSystem
-if [ "0" -eq $? ]; then
-    echo -e "\033[32m java  OperatingSystem successful \033[0m"
-else
-    echo -e "\033[31m java  OperatingSystem error\033[0m"
-    exit
-fi
+ShowTip "java  OperatingSystem successful " "java  OperatingSystem error"
 cd ..
+
 echo -e "\033[32m generate successful \033[0m"
