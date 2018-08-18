@@ -9,3 +9,4 @@
 DA_32   EQU 4000h   ; 32 位段
 DA_C    EQU 98h     ; 存在只执行代码段属性
 DA_DRW  EQU 92h     ; 存在可读写数据段属性
+DA_DRWA EQU 93h     ; 存在的已访问可读写数据段类型值

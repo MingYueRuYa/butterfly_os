@@ -2,6 +2,8 @@
 
 org 0x9000
 
+VRAM_ADDRESS equ 0x000a0000
+
 jmp LABEL_BEGIN
 
 [SECTION .gdt]
@@ -9,6 +11,8 @@ jmp LABEL_BEGIN
 LABEL_GDT:          Descriptor      0,          0,              0
 LABEL_DESC_CODE32:  Descriptor      0,          SegCode32Len-1, DA_C+DA_32
 LABEL_DESC_VIDEO:   Descriptor      0B8000h,    0ffffh,         DA_DRW
+LABEL_DES_VRAM:     Descriptor      0,          0ffffffffh,     DA_DRW
+LABEL_DESC_STACK:   Descriptor      0,          TopOfStack,     DA_DRWA+DA_32
 
 
 GdtLen  equ $ - LABEL_GDT
@@ -17,6 +21,8 @@ GdtPtr  dw  GdtLen - 1
 
 SelectorCode32  equ LABEL_DESC_CODE32 - LABEL_GDT
 SelectorVideo   equ LABEL_DESC_VIDEO - LABEL_GDT
+SelectorStack   equ LABEL_DESC_STACK - LABEL_GDT
+SelectorVram    equ LABEL_DES_VRAM - LABEL_GDT
 
 [SECTION .s16]
 [BITS 16]
@@ -27,6 +33,11 @@ LABEL_BEGIN:
     mov ss, ax
     mov sp, 0100h
 
+    ; 设置显卡的工作模式
+    mov al, 0x13
+    mov ah, 0
+    int 0x10
+
     xor eax, eax
     mov ax, cs
     shl eax, 4
@@ -35,6 +46,15 @@ LABEL_BEGIN:
     shr eax, 16
     mov byte [LABEL_DESC_CODE32 + 4], al
     mov byte [LABEL_DESC_CODE32 + 7], ah
+
+    xor eax, eax
+    mov ax, cs
+    shl eax, 4
+    add eax, LABEL_STACK
+    mov word [LABEL_DESC_STACK+2], ax
+    shr eax, 16
+    mov byte [LABEL_DESC_STACK+4], al
+    mov byte [LABEL_DESC_STACK+7], ah
 
     xor eax, eax
     mov ax, ds
@@ -61,32 +81,30 @@ LABEL_BEGIN:
 [SECTION .s32]
 [BITS 32]
 LABEL_SEG_CODE32:
-    mov ax, SelectorVideo
-    mov gs, ax
-    mov si, msg
-    mov ebx, 10
-    mov ecx, 2
+    ; initialize stack for c code    
+    mov ax, SelectorStack
+    mov ss, ax
+    mov esp, TopOfStack
 
-showChar:
-    mov edi, (80*11)
-    add edi, ebx
-    mov eax, edi
-    mul ecx
-    mov edi, eax
-    mov ah, 0ch
-    mov al, [si]
-    cmp al, 0
-    je end
-    add ebx, 1
-    add si, 1
-    mov [gs:edi], ax
-    jmp showChar
-end:
-    jmp $
-msg:
-    DB "Protect Mode", 0
+    mov ax, SelectorVram
+    mov ds, ax
+
+C_CODE_ENTRY:
+    %include "write_vga.asm"
+
+; void io_hlt(void)
+io_hlt:
+    HLT
+    jmp io_hlt
+
 
 SegCode32Len equ $ - LABEL_SEG_CODE32
 
+[section .gs]
+ALIGN 32
+[BITS 32]
+LABEL_STACK:
+    times 512 db 0
+TopOfStack equ $ - LABEL_STACK
 
 

@@ -38,11 +38,15 @@ public class OperatingSystem {
             while (in.read(buf) > 0) {
                 floppyDisk.writeFloppy(Floppy.MAGNETIC_HEAD.MAGNETIC_HEAD_0,
                                         cylinder, beginSec, buf);
-                beginSec++;
+
+                System.out.println("Load file " + fileName + 
+                                    " to floppy with cylinder: " + cylinder +
+                                    " and sector: " + beginSec);
                 if (beginSec > MAX_SECTOR_NUM) {
                     beginSec = 1;
                     cylinder++;
                 }
+                beginSec++;
             }
 
         } catch(IOException e) {
