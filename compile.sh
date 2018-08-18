@@ -19,11 +19,14 @@ fi
 mkdir -p bin
 ShowTip "create bin dir successful" "create bin dir error"
 
-nasm boot.asm -o ./bin/boot.bat
-ShowTip "compile boot.asm successful" "compile boot.asm error"
+#nasm boot.asm -o ./bin/boot.bat
+#ShowTip "compile boot.asm successful" "compile boot.asm error"
+#
+#nasm kernel.asm -o ./bin/kernel.bat
+#ShowTip "compile kernel.asm successful" "compile kernel.asm error"
 
-nasm kernel.asm -o ./bin/kernel.bat
-ShowTip "compile kernel.asm successful" "compile kernel.asm error"
+nasm boot_read5M.asm -o ./bin/boot.bat
+ShowTip "compile boot_read5M.asm successful" "compile boot_read5M.asm error"
 
 javac src/OperatingSystem.java src/Floppy.java  -d ./bin/
 cd ./bin
