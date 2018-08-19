@@ -11,7 +11,7 @@ jmp LABEL_BEGIN
 LABEL_GDT:          Descriptor      0,          0,              0
 LABEL_DESC_CODE32:  Descriptor      0,          SegCode32Len-1, DA_C+DA_32
 LABEL_DESC_VIDEO:   Descriptor      0B8000h,    0ffffh,         DA_DRW
-LABEL_DES_VRAM:     Descriptor      0,          0ffffffffh,     DA_DRW
+LABEL_DESC_VRAM:    Descriptor      0,          0ffffffffh,     DA_DRW
 LABEL_DESC_STACK:   Descriptor      0,          TopOfStack,     DA_DRWA+DA_32
 
 
@@ -22,7 +22,7 @@ GdtPtr  dw  GdtLen - 1
 SelectorCode32  equ LABEL_DESC_CODE32 - LABEL_GDT
 SelectorVideo   equ LABEL_DESC_VIDEO - LABEL_GDT
 SelectorStack   equ LABEL_DESC_STACK - LABEL_GDT
-SelectorVram    equ LABEL_DES_VRAM - LABEL_GDT
+SelectorVram    equ LABEL_DESC_VRAM - LABEL_GDT
 
 [SECTION .s16]
 [BITS 16]
@@ -48,17 +48,8 @@ LABEL_BEGIN:
     mov byte [LABEL_DESC_CODE32 + 7], ah
 
     xor eax, eax
-    mov ax, cs
-    shl eax, 4
-    add eax, LABEL_STACK
-    mov word [LABEL_DESC_STACK+2], ax
-    shr eax, 16
-    mov byte [LABEL_DESC_STACK+4], al
-    mov byte [LABEL_DESC_STACK+7], ah
-
-    xor eax, eax
     mov ax, ds
-    shl ax, 4
+    shl eax, 4
     add eax, LABEL_GDT
     mov dword [GdtPtr + 2], eax
 
@@ -69,11 +60,11 @@ LABEL_BEGIN:
 
     ; 打开A20
     in al, 92h
-    or al, 00000010h
+    or al, 00000010b
     out 92h, al
 
     mov eax, cr0
-    or eax, 1
+    or  eax, 1
     mov cr0, eax
 
     jmp dword SelectorCode32:0
@@ -89,12 +80,12 @@ LABEL_SEG_CODE32:
     mov ax, SelectorVram
     mov ds, ax
 
-%include "write_vga_desktop.asm"
+%include "write_vga_desktop_systemFont.asm"
 
 ; void io_hlt(void)
 io_hlt:
     HLT
-    jmp io_hlt
+    ret
 
 io_cli:
     cli 
@@ -123,7 +114,6 @@ io_in16:
 
 io_in32:
     mov edx, [esp+4]
-    mov eax, 0
     in eax, dx
     ret
 
@@ -135,13 +125,13 @@ io_out8:
 
 io_out16:
     mov edx, [esp+4]
-    mov al, [esp+8]
+    mov eax, [esp+8]
     out dx, ax
     ret
 
 io_out32:
     mov edx, [esp+4]
-    mov al, [esp+8]
+    mov eax, [esp+8]
     out dx, eax
     ret
 
@@ -156,9 +146,11 @@ io_store_eflags:
     popfd
     ret
 
+%include "fontData.inc"
+
 SegCode32Len equ $ - LABEL_SEG_CODE32
 
-[section .gs]
+[SECTION .gs]
 ALIGN 32
 [BITS 32]
 LABEL_STACK:

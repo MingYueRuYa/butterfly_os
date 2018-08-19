@@ -1,6 +1,6 @@
 #!/bin/bash
 
-c_file_name="write_vga_desktop"
+c_file_name="write_vga_desktop_systemFont"
 
 echo ${c_file_name}
 

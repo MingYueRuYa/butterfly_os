@@ -60,7 +60,7 @@ public class Floppy {
         if (cylinder < 0) {
             this.current_cylinder = 0;
         } else if (cylinder >= 80) {
-            this.current_cylinder = 0;
+            this.current_cylinder = 79;
         } else {
             this.current_cylinder = cylinder;
         }

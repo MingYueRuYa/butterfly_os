@@ -17,7 +17,7 @@
 
 void io_hlt(void);
 void io_cli(void);
-void io_out8(int portNum, int value);
+void io_out8(int portNum, unsigned char value);
 int io_load_eflags(void);
 void io_store_eflags(int);
 
