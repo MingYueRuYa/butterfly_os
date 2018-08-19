@@ -1,5 +1,9 @@
 #!/bin/bash
 
+c_file_name="write_vga_desktop"
+
+echo ${c_file_name}
+
 ShowTip() {
     if [ "0" -eq $? ]; then
         echo -e "\033[32m $1 \033[0m"
@@ -11,7 +15,7 @@ ShowTip() {
 
 if [ "$1"x = "clear"x ]; then
     rm -rf ./bin
-    rm -rf write_vga.asm
+    rm -rf ${c_file_name}.asm
     echo -e "\033[32m clear successful \033[0m"
     exit
 fi
@@ -20,13 +24,14 @@ fi
 mkdir -p bin
 ShowTip "create bin dir successful" "create bin dir error"
 
-gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/write_vga.o write_vga.c
-objconv -fnasm ./bin/write_vga.o -o write_vga.asm 
+gcc -m32 -fno-asynchronous-unwind-tables -s -c -o \
+./bin/${c_file_name}.o ${c_file_name}.c
+objconv -fnasm ./bin/${c_file_name}.o -o ${c_file_name}.asm 
 ShowTip "objconv write_vag.o successful" "objconv write_vag.o error"
 
-sed -i '/^global*/d' write_vga.asm
-sed -i '/^SECTION*/d' write_vga.asm
-sed -i '/^extern*/d' write_vga.asm
+sed -i '/^global*/d' ${c_file_name}.asm
+sed -i '/^SECTION*/d' ${c_file_name}.asm
+sed -i '/^extern*/d' ${c_file_name}.asm
 
 nasm boot.asm -o ./bin/boot.bat
 ShowTip "compile boot.asm successful" "compile boot.asm error"
