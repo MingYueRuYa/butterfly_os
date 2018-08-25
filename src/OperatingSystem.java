@@ -42,8 +42,8 @@ public class OperatingSystem {
                 System.out.println("Load file " + fileName + 
                                     " to floppy with cylinder: " + cylinder +
                                     " and sector: " + beginSec);
-                if (beginSec > MAX_SECTOR_NUM) {
-                    beginSec = 1;
+                if (beginSec >= MAX_SECTOR_NUM) {
+                    beginSec = 0;
                     cylinder++;
                 }
                 beginSec++;
@@ -60,7 +60,7 @@ public class OperatingSystem {
     }
 
     public void makeFloppy()   {
-        writeFileToFloppy("kernel.bat", false, 1, 2);
+        writeFileToFloppy("kernel.bat", false, 1, 1);
         floppyDisk.makeFloppy("system.img");
     }
 

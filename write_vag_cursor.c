@@ -20,6 +20,7 @@ void io_cli(void);
 void io_out(int port, int data);
 int  io_load_eflags(void);
 void io_store_eflags(int eflags);
+void show_char(void);
 
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
@@ -38,6 +39,7 @@ static char fontA[16] = {0x00, 0x18, 0x18, 0x18, 0x18, 0x24, 0x24, 0x24,
 };
 
 extern char systemFont[16];
+static struct BOOTINFO bootInfo;
 
 void showFont8(char *vram, int xsize, int x, int y, char c, char* font);
 void showString(char *vram, int xsize, 
@@ -46,11 +48,11 @@ void showString(char *vram, int xsize,
 
 void putblock(char *vram, int vxsize, int pxsize,
                 int pysize, int px0, int py0, char *buf, int bxsize);
+void intHandlerFromC(char *esp);
 void init_mouse_cursor(char *mouse, char b);
 static char mcursor[256];
 
 void CMain(void) {
-    struct BOOTINFO bootInfo;
     initBootInfo(&bootInfo);
     char*vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
@@ -81,7 +83,7 @@ void CMain(void) {
     showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '2'*16);
     showFont8(vram, xsize, 64, 8, COL8_FFFFFF, systemFont + '3'*16);
 
-    showString(vram, xsize, 72, 8, COL8_FFFFFF, "Show cursor below !");
+    // showString(vram, xsize, 72, 8, COL8_FFFFFF, "Show cursor below !");
 
     init_mouse_cursor(mcursor, COL8_008484);
     putblock(vram, xsize, 16, 16, 80, 80, mcursor, 16);
@@ -174,6 +176,18 @@ void showString(char *vram, int xsize,
         showFont8(vram, xsize, x, y, color, systemFont+*s*16);
         x += 8;
     }
+}
+
+void intHandlerFromC(char *esp)
+{
+    char *vram = bootInfo.vgaRam;
+    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+    boxfill8(vram, xsize, COL8_000000, 0, 0, 32*8-1, 15);
+    showString(vram, xsize, 0, 0, COL8_FFFFFF, "PS/2 keyboard");
+    for (;;) {
+        io_hlt();
+    }
+    show_char();
 }
 
 void init_mouse_cursor(char *mouse, char bc)
