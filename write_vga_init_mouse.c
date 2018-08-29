@@ -57,12 +57,25 @@ void init_mouse_cursor(char *mouse, char b);
 static char mcursor[256];
 
 static char keyval[5] = {'0', 'X', 0, 0, 0};
-struct KEYBUF {
-    unsigned char key_buf[32];
-    int next_r, next_w, len;
+//struct KEYBUF {
+//    unsigned char key_buf[32];
+//    int next_r, next_w, len;
+//};
+
+struct FIFO8 {
+    unsigned char *buf;
+    int p, q, size, free, flags;
 };
 
-static struct KEYBUF keybuf;
+static struct FIFO8 keyinfo;
+static char keybuf[32];
+
+void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
+int fifo8_put(struct FIFO8 *fifo, unsigned char data);
+int fifo8_get(struct FIFO8 *fifo);
+int fifo8_status(struct FIFO8 *fifo);
+
+// static struct KEYBUF keybuf;
 
 char charToHexVal(char c);
 char *charToHexStr(unsigned char c);
@@ -75,8 +88,9 @@ void CMain(void) {
     char*vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
 
+    fifo8_init(&keyinfo, 32, keybuf);
     init_palette();
-    init_keyboard();
+    // init_keyboard();
     
     boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
     boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-28, xsize-1, ysize-28);
@@ -108,18 +122,16 @@ void CMain(void) {
     putblock(vram, xsize, 16, 16, 80, 80, mcursor, 16);
 
     io_sti();
-    enable_mouse();
+    // enable_mouse();
 
     int data = 0;
     for(;;) {
         io_cli();
-        if (keybuf.len == 0) {
+        if (fifo8_status(&keyinfo) == 0) {
             io_stihlt();
         } else {
-            data = keybuf.key_buf[keybuf.next_r];
-            keybuf.next_r = (keybuf.next_r+1)%32;
             io_sti();
-            keybuf.len--;
+            data = fifo8_get(&keyinfo);
             char *str = charToHexStr(data);
             static int showXPos = 0;
             static int showYPos = 0;
@@ -214,21 +226,6 @@ void showString(char *vram, int xsize,
     }
 }
 
-void intHandlerFromC(char *esp)
-{
-    char *vram = bootInfo.vgaRam;
-    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
-
-    io_out8(PIC_OCW2, 0x21);
-    unsigned char data = 0;
-    data = io_in8(PORT_KEYDAT);
-    if (keybuf.len < 32) {
-        keybuf.key_buf[keybuf.next_w] = data;
-        keybuf.len++;
-        keybuf.next_w = (keybuf.next_w+1)%32;
-    }
-}
-
 void init_mouse_cursor(char *mouse, char bc)
 {
     static char cursor[16][16] = {
@@ -255,9 +252,11 @@ void init_mouse_cursor(char *mouse, char bc)
         for (x = 0; x < 16; x++) {
             if (cursor[y][x] == '*') {
                 mouse[y*16+x] = COL8_000000;
-            } else if (cursor[y][x] == 'O') {
+			} 
+			if (cursor[y][x] == 'O') {
                 mouse[y*16+x] = COL8_FFFFFF;
-            } else if (cursor[y][x] == '.') {
+            } 
+			if (cursor[y][x] == '.') {
                 mouse[y*16+x] = bc;
             }
         }
@@ -273,6 +272,18 @@ void putblock(char *vram, int vxsize, int pxsize, int pysize, int px0,
             vram[(py0+y)*vxsize + (px0+x)] = buf[y*bxsize+x];
         }
     }
+}
+
+void intHandlerFromC(char *esp)
+{
+    char *vram = bootInfo.vgaRam;
+    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+
+    io_out8(PIC_OCW2, 0x21);
+    unsigned char data = 0;
+    data = io_in8(PORT_KEYDAT);
+    fifo8_put(&keyinfo, data);
+    // showString(vram, szie, 0, 0, "keyboard");
 }
 
 char charToHexVal(char c)
@@ -341,4 +352,52 @@ void intHandlerForMouse(char *esp)
     }
 }
 
+void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf)
+{
+    fifo->size  = size;
+    fifo->buf   = buf;
+    fifo->free  = size;
+    fifo->flags = 0;
+    fifo->p     = 0;
+    fifo->q     = 0;
+    return;
+}
+
+#define FLAGS_OVERRUN 0x0001
+int fifo8_put(struct FIFO8 *fifo, unsigned char data)
+{
+    if (fifo->free == 0) {
+        fifo->flags |= FLAGS_OVERRUN;
+        return -1;
+    }
+    
+    fifo->buf[fifo->p] = data;
+    fifo->p++;
+    if (fifo->p == fifo->size) {
+        fifo->p = 0;
+    }
+    fifo->free--;
+    return 0;
+}
+
+int fifo8_get(struct FIFO8 *fifo)
+{
+    int data;
+    if (fifo->free == fifo->size) {
+        return -1;
+    }
+
+    data = fifo->buf[fifo->q];
+    fifo->q++;
+    if (fifo->q == fifo->size) {
+        fifo->q = 0;
+    }
+    fifo->free++;
+    return data;
+}
+
+int fifo8_status(struct FIFO8 *fifo)
+{
+    return fifo->size - fifo->free;
+}
 

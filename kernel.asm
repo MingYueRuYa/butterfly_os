@@ -101,8 +101,7 @@ LABEL_BEGIN:
 
 init8259A:
     mov al, 011h
-    ; 这个02h是不是写错了,需要作者的确认
-    out 02h, al
+    out 20h, al
     call io_delay 
 
     out 0A0h, al
@@ -124,7 +123,7 @@ init8259A:
     out 0A1h, al
     call io_delay
 
-    mov al, 003h
+    mov al, 001h
     out 021h, al
     call io_delay
 
@@ -132,7 +131,7 @@ init8259A:
     call io_delay
 
     mov al, 11111001b
-    out 21h, al
+    out 021h, al
     call io_delay
 
     mov al, 11101111b   ; 允许鼠标中断
@@ -164,13 +163,12 @@ LABEL_SEG_CODE32:
     
     sti
 
-    %include "write_vag_cursor.asm"
+    %include "write_vga_init_mouse.asm"
 
     jmp $
 
 _SpuriousHandler:
 SpuriousHandler equ _SpuriousHandler - $$
-    call intHandlerFromC
     iretd
 
 _KeyBoardhandler:
