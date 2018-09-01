@@ -53,12 +53,28 @@ LABEL_BEGIN:
     mov ss, ax
     mov sp, 0100h
 
+; calculate memory
+ComputeMemory:
+    mov ebx, 0
+    mov di, MemChkBuf
+.loop:
+    mov eax, 0E820h
+    mov ecx, 20
+    mov edx, 0534D4150h
+    int 15h
+    jc LABEL_MEM_CHK_FAIL
+    add di, 20
+    inc dword [dwMCRNumber]
+    cmp ebx, 0
+    jne .loop
+    jmp LABEL_MEM_CHK_OK
+LABEL_MEM_CHK_FAIL:
+    mov dword [dwMCRNumber], 0
+LABEL_MEM_CHK_OK:
     ; 设置显卡的工作模式
     mov al, 0x13
     mov ah, 0
     int 0x10
-
-
 
     xor eax, eax
     mov ax, cs
@@ -163,7 +179,7 @@ LABEL_SEG_CODE32:
     
     sti
 
-    %include "write_vga_init_mouse.asm"
+    %include "write_vga_show_memory.asm"
 
     jmp $
 
@@ -202,6 +218,7 @@ mouseHandler equ _mouseHandler - $$
     pop ds 
     pop es
     iretd
+
 
 
 ; void io_hlt(void)
@@ -268,14 +285,17 @@ io_store_eflags:
     popfd
     ret
 
-    show_char:
-        mov  ah, 0Ch
-        mov  al, 'U'
-        mov  [gs:((80 * 0 + 67) * 2)], ax
-        ret
+get_memory_block_count:
+    mov eax, [dwMCRNumber]
+    ret
 %include "fontData.inc"
 
 SegCode32Len equ $ - LABEL_SEG_CODE32
+
+MemChkBuf:  
+    times 256 db 0
+dwMCRNumber:
+    dd 0
 
 [SECTION .gs]
 ALIGN 32
@@ -283,5 +303,4 @@ ALIGN 32
 LABEL_STACK:
     times 512 db 0
 TopOfStack equ $ - LABEL_STACK
-
 

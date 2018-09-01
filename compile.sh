@@ -1,6 +1,6 @@
 #!/bin/bash
 
-c_file_name="write_vga_init_mouse"
+c_file_name="write_vga_show_memory"
 
 echo ${c_file_name}
 
