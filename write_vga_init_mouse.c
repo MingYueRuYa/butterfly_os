@@ -17,6 +17,7 @@
 
 #define PORT_KEYDAT 0x0060
 #define PIC_OCW2    0x20
+#define PIC1_OCW2   0xA0
 
 void io_hlt(void);
 void io_cli(void);
@@ -68,7 +69,16 @@ struct FIFO8 {
 };
 
 static struct FIFO8 keyinfo;
+static struct FIFO8 mouseinfo;
 static char keybuf[32];
+static char mousebuf[128];
+
+struct MOUSE_DEC {
+    unsigned char buf[3], phase;
+    int x, y, btn;
+};
+
+static struct MOUSE_DEC mdec;
 
 void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
 int fifo8_put(struct FIFO8 *fifo, unsigned char data);
@@ -81,16 +91,23 @@ char charToHexVal(char c);
 char *charToHexStr(unsigned char c);
 
 void init_keyboard(void);
-void enable_mouse(void);
+void enable_mouse(struct MOUSE_DEC *mdec);
+
+void show_mouse_info();
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
+
+static int mx = 0, my = 0;
+static int xsize = 0, ysize = 0;
 
 void CMain(void) {
     initBootInfo(&bootInfo);
     char*vram = bootInfo.vgaRam;
-    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+    xsize = bootInfo.screenX, ysize = bootInfo.screenY;
 
     fifo8_init(&keyinfo, 32, keybuf);
+    fifo8_init(&mouseinfo, 128, mousebuf);
     init_palette();
-    // init_keyboard();
+    init_keyboard();
     
     boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
     boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-28, xsize-1, ysize-28);
@@ -108,28 +125,22 @@ void CMain(void) {
     boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-23, xsize-47, ysize-4);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
-  
-    showFont8(vram, xsize, 8, 8, COL8_FFFFFF, systemFont + 'A'*16);
-    showFont8(vram, xsize, 16, 8, COL8_FFFFFF, systemFont + 'B'*16);
-    showFont8(vram, xsize, 24, 8, COL8_FFFFFF, systemFont + 'C'*16);
-    showFont8(vram, xsize, 32, 8, COL8_FFFFFF, systemFont + '1'*16);
-    showFont8(vram, xsize, 48, 8, COL8_FFFFFF, systemFont + '2'*16);
-    showFont8(vram, xsize, 64, 8, COL8_FFFFFF, systemFont + '3'*16);
-
-    // showString(vram, xsize, 72, 8, COL8_FFFFFF, "Show cursor below !");
+    
+    mx = (xsize - 16) / 2;
+    my = (ysize - 28 - 16) / 2;
 
     init_mouse_cursor(mcursor, COL8_008484);
-    putblock(vram, xsize, 16, 16, 80, 80, mcursor, 16);
+    putblock(vram, xsize, 16, 16, mx, my, mcursor, 16);
 
     io_sti();
-    // enable_mouse();
+    enable_mouse(&mdec);
 
     int data = 0;
     for(;;) {
         io_cli();
-        if (fifo8_status(&keyinfo) == 0) {
+        if ((fifo8_status(&keyinfo) + fifo8_status(&mouseinfo)) == 0) {
             io_stihlt();
-        } else {
+        } else if (fifo8_status(&keyinfo) != 0) {
             io_sti();
             data = fifo8_get(&keyinfo);
             char *str = charToHexStr(data);
@@ -137,9 +148,57 @@ void CMain(void) {
             static int showYPos = 0;
             showString(vram, xsize, showXPos, 0, COL8_FFFFFF, str);
             showXPos += 32;
+        } else if (fifo8_status(&mouseinfo) != 0) {
+            show_mouse_info();
         }
     }
 
+}
+
+void computeMousePosition(struct MOUSE_DEC *mdec)
+{
+    mx += mdec->x;
+    my += mdec->y;
+
+    if (mx < 0) {
+        mx = 0;
+    }
+
+    if (my < 0) {
+        my = 0;
+    }
+    
+    if (mx > xsize - 16) {
+        mx = xsize - 16;
+    }
+
+    if (my > ysize - 16) {
+        my = ysize - 16;
+    }
+}
+
+void eraseMouse(char *vram)
+{
+    boxfill8(vram, xsize, COL8_008484, mx, my, mx+15, my+15);
+}
+
+void drawMouse(char *vram)
+{
+    putblock(vram, xsize, 16, 16, mx, my, mcursor, 16);
+}
+
+void show_mouse_info(void)
+{
+    char *vram = bootInfo.vgaRam;
+    unsigned char data = 0;
+
+    io_sti();
+    data = fifo8_get(&mouseinfo);
+    if (mouse_decode(&mdec, data) != 0) {
+        eraseMouse(vram);
+        computeMousePosition(&mdec);
+        drawMouse(vram);
+    }
 }
 
 void initBootInfo(struct BOOTINFO *pBootInfo) {
@@ -279,7 +338,7 @@ void intHandlerFromC(char *esp)
     char *vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
 
-    io_out8(PIC_OCW2, 0x21);
+    io_out8(PIC_OCW2, 0x20);
     unsigned char data = 0;
     data = io_in8(PORT_KEYDAT);
     fifo8_put(&keyinfo, data);
@@ -331,25 +390,25 @@ void init_keyboard(void)
 #define KEYCMD_SENDTO_MOUSE 0xd4
 #define MOUSECMD_ENABLE     0xf4
 
-void enable_mouse(void)
+void enable_mouse(struct MOUSE_DEC *mdec)
 {
     wait_KBC_sendready();
     io_out8(PORT_KEYCMD, KEYCMD_SENDTO_MOUSE);
     wait_KBC_sendready();
     io_out8(PORT_KEYDAT, MOUSECMD_ENABLE);
+
+    mdec->phase = 0;
 	return;
 }
 
 void intHandlerForMouse(char *esp)
 {
-    char *vram = bootInfo.vgaRam;
-    int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+    unsigned char data;
+    io_out8(PIC1_OCW2, 0x20);
+    io_out8(PIC_OCW2, 0x20);
 
-    showString(vram, xsize, 0, 0, COL8_FFFFFF, "PS/2 Mouse Handler");
-
-    for (;;) {
-        io_hlt();
-    }
+    data = io_in8(PORT_KEYDAT);
+    fifo8_put(&mouseinfo, data);
 }
 
 void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf)
@@ -400,4 +459,50 @@ int fifo8_status(struct FIFO8 *fifo)
 {
     return fifo->size - fifo->free;
 }
+
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat)
+{
+    if (mdec->phase == 0) {
+        if (dat == 0xfa) {
+            mdec->phase = 1;
+        }
+        return 0;
+    }
+
+    if (mdec->phase == 1) {
+        if ((dat & 0xc8) == 0x08) {
+            mdec->buf[0] = dat;
+            mdec->phase = 2;
+        }
+        return 0;
+    }
+
+    if (mdec->phase == 2) {
+        mdec->buf[1] = dat;
+        mdec->phase = 3;
+        return 0; 
+    }
+
+    if (mdec->phase == 3) {
+        mdec->buf[2] = dat;
+        mdec->phase = 1;
+        mdec->btn = mdec->buf[0] & 0x07;
+        mdec->x = mdec->buf[1];
+        mdec->y = mdec->buf[2];
+
+        if ((mdec->buf[0] & 0x10) != 0) {
+            mdec->x |= 0xffffff00;
+        }
+
+        if ((mdec->buf[0] & 0x20) != 0) {
+            mdec->y |= 0xffffff00;
+        }
+
+        mdec->y = -mdec->y;
+        return 1;
+    }
+    return -1;
+}
+
+
 

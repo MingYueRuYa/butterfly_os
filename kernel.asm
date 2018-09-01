@@ -58,7 +58,7 @@ LABEL_BEGIN:
     mov ah, 0
     int 0x10
 
-    call init8259A
+
 
     xor eax, eax
     mov ax, cs
@@ -79,7 +79,7 @@ LABEL_BEGIN:
 
     ; 关中断
     cli
-
+    call init8259A
     ; 准备IDT描述符
     xor eax, eax
     mov ax, ds
@@ -101,7 +101,7 @@ LABEL_BEGIN:
 
 init8259A:
     mov al, 011h
-    out 20h, al
+    out 020h, al
     call io_delay 
 
     out 0A0h, al
