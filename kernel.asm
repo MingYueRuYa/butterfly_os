@@ -187,8 +187,8 @@ _SpuriousHandler:
 SpuriousHandler equ _SpuriousHandler - $$
     iretd
 
-_KeyBoardhandler:
-KeyBoardHandler equ _KeyBoardhandler - $$
+_KeyBoardHandler:
+KeyBoardHandler equ _KeyBoardHandler - $$
     push es
     push ds
     pushad
@@ -288,6 +288,11 @@ io_store_eflags:
 get_memory_block_count:
     mov eax, [dwMCRNumber]
     ret
+
+get_adr_buffer:
+    mov eax, MemChkBuf
+    ret
+
 %include "fontData.inc"
 
 SegCode32Len equ $ - LABEL_SEG_CODE32
