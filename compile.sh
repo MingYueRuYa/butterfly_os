@@ -1,6 +1,7 @@
 #!/bin/bash
 
 c_file_name="write_vga_show_memory"
+c_kernel_name="ckernel"
 
 echo ${c_file_name}
 
@@ -25,13 +26,23 @@ mkdir -p bin
 ShowTip "create bin dir successful" "create bin dir error"
 
 gcc -m32 -fno-asynchronous-unwind-tables -s -c -o \
+./bin/mem_util.o mem_util.c
+
+gcc -m32 -fno-asynchronous-unwind-tables -s -c -o \
 ./bin/${c_file_name}.o ${c_file_name}.c
-objconv -fnasm ./bin/${c_file_name}.o -o ${c_file_name}.asm 
+
+cd ./bin/
+ld -m elf_i386 -r ${c_file_name}.o mem_util.o -o ${c_kernel_name}.o
+cd ..
+
+#ld -m elf_i386 -r ./bin/${c_file_name}.o ./bin/mem_util.o -o ./bin/${c_file_name}.o
+
+objconv -fnasm ./bin/${c_kernel_name}.o -o ${c_kernel_name}.asm 
 ShowTip "objconv write_vag.o successful" "objconv write_vag.o error"
 
-sed -i '/^global*/d' ${c_file_name}.asm
-sed -i '/^SECTION*/d' ${c_file_name}.asm
-sed -i '/^extern*/d' ${c_file_name}.asm
+sed -i '/^global*/d' ${c_kernel_name}.asm
+sed -i '/^SECTION*/d' ${c_kernel_name}.asm
+sed -i '/^extern*/d' ${c_kernel_name}.asm
 
 nasm boot.asm -o ./bin/boot.bat
 ShowTip "compile boot.asm successful" "compile boot.asm error"

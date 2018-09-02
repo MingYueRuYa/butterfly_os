@@ -1,6 +1,6 @@
 %include "pm.inc"
 
-org 0x9000
+org 8000h
 
 VRAM_ADDRESS equ 0x000a0000
 
@@ -9,11 +9,11 @@ jmp LABEL_BEGIN
 [SECTION .gdt]
 ;                               段基址      段界限              属性
 LABEL_GDT:          Descriptor      0,          0,              0
-LABEL_DESC_CODE32:  Descriptor      0,          SegCode32Len-1, DA_C+DA_32
-LABEL_DESC_VIDEO:   Descriptor      0B8000h,    0ffffh,         DA_DRW
-LABEL_DESC_VRAM:    Descriptor      0,          0ffffffffh,     DA_DRW
-LABEL_DESC_STACK:   Descriptor      0,          TopOfStack,     DA_DRWA+DA_32
-
+LABEL_DESC_CODE32:  Descriptor      0,          0fffffh, DA_C | DA_32|DA_LIMIT_4K
+LABEL_DESC_VIDEO:   Descriptor      0B8000h,    0fffffh,         DA_DRW
+LABEL_DESC_VRAM:    Descriptor      0,          0fffffh,     DA_DRW | DA_LIMIT_4K
+LABEL_DESC_STACK:   Descriptor      0,          TopOfStack,     DA_DRWA | DA_32
+LABEL_DESC_FONT:    Descriptor      0,          0fffffh,         DA_DRW | DA_LIMIT_4K
 
 GdtLen  equ $ - LABEL_GDT
 GdtPtr  dw  GdtLen - 1
@@ -23,6 +23,7 @@ SelectorCode32  equ LABEL_DESC_CODE32 - LABEL_GDT
 SelectorVideo   equ LABEL_DESC_VIDEO - LABEL_GDT
 SelectorStack   equ LABEL_DESC_STACK - LABEL_GDT
 SelectorVram    equ LABEL_DESC_VRAM - LABEL_GDT
+SelectorFont    equ LABEL_DESC_FONT - LABEL_GDT
 
 LABEL_IDT:
 %rep 33 
@@ -84,6 +85,15 @@ LABEL_MEM_CHK_OK:
     shr eax, 16
     mov byte [LABEL_DESC_CODE32 + 4], al
     mov byte [LABEL_DESC_CODE32 + 7], ah
+
+    xor eax, eax
+    mov ax, cs
+    shl eax, 4
+    add eax, LABEL_SYSTEM_FONT
+    mov word [LABEL_DESC_FONT+2], ax
+    shr eax, 16
+    mov byte [LABEL_DESC_FONT+4], al
+    mov byte [LABEL_DESC_FONT+7], ah
 
     xor eax, eax
     mov ax, ds
@@ -179,7 +189,7 @@ LABEL_SEG_CODE32:
     
     sti
 
-    %include "write_vga_show_memory.asm"
+    %include "ckernel.asm"
 
     jmp $
 
@@ -219,7 +229,16 @@ mouseHandler equ _mouseHandler - $$
     pop es
     iretd
 
-
+get_font_data:
+    mov ax, SelectorFont
+    mov es, ax
+    xor edi, edi
+    mov edi, [esp+4]
+    shl edi, 4
+    add edi, [esp+8]
+    xor eax, eax
+    mov al, byte [es:edi]
+    ret
 
 ; void io_hlt(void)
 io_hlt:
@@ -293,9 +312,13 @@ get_adr_buffer:
     mov eax, MemChkBuf
     ret
 
-%include "fontData.inc"
+# %include "fontData.inc"
 
 SegCode32Len equ $ - LABEL_SEG_CODE32
+
+[SECTION .data]
+ALIGN 32
+[BITS 32]
 
 MemChkBuf:  
     times 256 db 0
@@ -308,4 +331,9 @@ ALIGN 32
 LABEL_STACK:
     times 512 db 0
 TopOfStack equ $ - LABEL_STACK
+
+LABEL_SYSTEM_FONT:
+%include "fontData.inc"
+
+SystemFontLength equ $ - LABEL_SYSTEM_FONT
 
