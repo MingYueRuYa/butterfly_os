@@ -49,6 +49,55 @@ void sheet_setbuf(struct SHEET *sht, unsigned char *buf,
 
 void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
 {
+    int h, old = sht->height;
+    if (height > ctl->top+1) {
+        height = ctl->top+1;
+    }
+
+    if (height < -1) {
+        height = -1;
+    }
+
+    sht->height = height;
+
+    // down
+    if (old > height) {
+        if (height >= 0) {
+            // 把后面的往前面移动 
+            for (h = old; h > height; h--) {
+                ctl->sheets[h] = ctl->sheets[h-1];
+                ctl->sheets[h].height = h;
+            } // for h
+            ctl->sheets[height] = sht;
+        } else {
+            // height < 0表示缩小化，不需要绘制
+            if (ctl->top > old) {
+                for (h = old; h > ctl->top; h--) {
+                    ctl->sheets[h] = ctl->sheets[h+1];
+                    ctl->sheets[h].height = h;
+                } // for h
+                ctl->top--;
+            } // if (ctl->top > old)
+        } // if (height >= 0)
+        sheet_refresh(); 
+    } else { // up
+        if (old >= 0) {
+            for (h = old; h > height; h--) {
+                ctl->sheets[h] = ctl->sheets[h+1];
+                ctl->sheets[h].height = h;
+            } // for h
+            ctl->sheets[height] = sht;
+        } else {
+            for (h == ctl->top; h >= height; h--) {
+                ctl->sheets[h+1] = ctl->sheets[h];
+                ctl->sheets[h+1] = h+1;
+            } // for h
+            
+            ctl->sheets[height] = sht;
+            ctl->top++;
+        }  // if (old >= 0)
+        sheet_refresh(); 
+    } // if (old > height)
 }
 
 int sheet_refresh(struct SHTCTL *ctl)
