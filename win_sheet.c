@@ -1,27 +1,11 @@
 #include "win_sheet.h"
 
-#define SHEET_USE 1
-struct SHEET *sheet_alloc(struct SHTCTL *ctl)
-{
-    struct SHEET *sht = 0;
-    int i = 0;
-    for (i = 0; i< MAX_SHEETS; ++i) {
-        if (ctl->sheets0[i].flags == 0) {
-            sht = &ctl->sheets0[i];
-            sht->flags  = SHEET_USE;
-            sht->height = -1;
-            return sht;
-        }
-    }
-    return sht;
-}
-
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram,
                             int xsize, int ysize)
 {
     struct SHTCTL *ctl;
     int i = 0;
-    ctl = (struct SHTCTL *)memman_alloc_4k(memman, SIZE_OF_SHEET);
+    ctl = (struct SHTCTL *)memman_alloc_4k(memman, SIZE_OF_SHTCTL);
     if (0 == ctl) {
         return 0;
     }
@@ -37,6 +21,21 @@ struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram,
     return ctl;
 }
 
+#define SHEET_USE 1
+struct SHEET *sheet_alloc(struct SHTCTL *ctl)
+{
+    struct SHEET *sht = 0;
+    int i = 0;
+    for (i = 0; i< MAX_SHEETS; ++i) {
+        if (ctl->sheets0[i].flags == 0) {
+            sht = &ctl->sheets0[i];
+            sht->flags  = SHEET_USE;
+            sht->height = -1;
+            return sht;
+        }
+    }
+    return 0;
+}
 void sheet_setbuf(struct SHEET *sht, unsigned char *buf, 
                     int xsize, int ysize, int col_inv)
 {
@@ -71,23 +70,23 @@ void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
         } else {
             // height < 0表示缩小化，不需要绘制
             if (ctl->top > old) {
-                for (h = old; h > ctl->top; h--) {
+                for (h = old; h < ctl->top; h++) {
                     ctl->sheets[h] = ctl->sheets[h+1];
                     ctl->sheets[h]->height = h;
                 } // for h
-                ctl->top--;
             } // if (ctl->top > old)
+			ctl->top--;
         } // if (height >= 0)
         sheet_refresh(ctl); 
-    } else { // up
+    } else if (old < height) { // up
         if (old >= 0) {
-            for (h = old; h > height; h--) {
+            for (h = old; h < height; h++) {
                 ctl->sheets[h] = ctl->sheets[h+1];
                 ctl->sheets[h]->height = h;
             } // for h
             ctl->sheets[height] = sht;
         } else {
-            for (h == ctl->top; h >= height; h--) {
+            for (h = ctl->top; h >= height; h--) {
                 ctl->sheets[h+1] = ctl->sheets[h];
                 ctl->sheets[h+1]->height = h+1;
             } // for h
@@ -119,11 +118,12 @@ int sheet_refresh(struct SHTCTL *ctl)
                 c = buf[by*sht->bxsize+bx];
                 // 如果不是透明的就需要绘制，透明的则不需要绘制
                 if (c != sht->col_inv) {
-                    vram[vy*ctl->ysize+vx] = c;
+                    vram[vy*ctl->xsize+vx] = c;
                 }
             } // for bx
         } // for by
     } // for h
+	return 0;
 }
 
 void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0)

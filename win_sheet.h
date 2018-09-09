@@ -19,7 +19,7 @@ struct SHTCTL {
 };
 
 #define SIZE_OF_SHEET 32
-#define size_of_shtctl 9232
+#define SIZE_OF_SHTCTL 9232
 
 struct SHEET *sheet_alloc(struct SHTCTL *ctl);
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram,
