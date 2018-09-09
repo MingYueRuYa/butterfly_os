@@ -228,6 +228,9 @@ void computeMousePosition(struct MOUSE_DEC *mdec)
     if (my > ysize - 16) {
         my = ysize - 16;
     }
+	
+    boxfill8(buf_back, xsize, COL8_008484, 0, 0, 79, 15);
+    showString(buf_back, xsize, 0, 0, COL8_FFFFFF, "mouse move");
 }
 
 void eraseMouse(char *vram)
@@ -334,8 +337,8 @@ void showString(char *vram, int xsize,
                 unsigned char *s)
 {
     for (; *s != 0x00; s++) {
-        showFont8(vram, xsize, x, y, color, systemFont+*s*16);
-        x += 8;
+       showFont8(vram, xsize, x, y,color, systemFont+ *s * 16);
+       x += 8;
     }
 }
 

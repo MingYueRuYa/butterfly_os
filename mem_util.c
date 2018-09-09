@@ -23,6 +23,8 @@ unsigned int memman_alloc(struct MEMMAN *man, unsigned int size)
     for (i = 0; i < man->frees; ++i) {
         if (man->free[i].size >= size) {
             a = man->free[i].addr;
+
+	        man->free[i].addr += size; //bug
             man->free[i].size -= size;
             if (man->free[i].size == 0) {
                 man->frees--;
@@ -81,3 +83,21 @@ int memman_free(struct MEMMAN *man, unsigned int addr, unsigned int size)
     man->lostsize += size;
     return -1;
 }
+
+unsigned int memman_alloc_4k(struct MEMMAN *man, unsigned int size)
+{
+    unsigned int a;
+    size = (size+0xfff) & 0xfffff000;
+    a = memman_alloc(man, size);
+    return a;
+}
+
+int memman_free_4k(struct MEMMAN *man, unsigned int addr, 
+                            unsigned int size)
+{
+    int i;
+    size = (size+0xfff) & 0xfffff000;
+    i = memman_free(man, addr, size);
+    return i;
+}
+
