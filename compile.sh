@@ -29,10 +29,13 @@ gcc -m32 -fno-asynchronous-unwind-tables -s -c -o \
 ./bin/mem_util.o mem_util.c
 
 gcc -m32 -fno-asynchronous-unwind-tables -s -c -o \
+./bin/win_sheet.o win_sheet.c 
+
+gcc -m32 -fno-asynchronous-unwind-tables -s -c -o \
 ./bin/${c_file_name}.o ${c_file_name}.c
 
 cd ./bin/
-ld -m elf_i386 -r ${c_file_name}.o mem_util.o -o ${c_kernel_name}.o
+ld -m elf_i386 -r ${c_file_name}.o mem_util.o win_sheet.o -o ${c_kernel_name}.o
 cd ..
 
 #ld -m elf_i386 -r ./bin/${c_file_name}.o ./bin/mem_util.o -o ./bin/${c_file_name}.o

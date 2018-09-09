@@ -20,6 +20,7 @@
 #define PIC1_OCW2   0xA0
 
 #include "mem_util.h"
+#include "win_sheet.h"
 
 struct MEMMAN* memman = (struct MEMMAN *)0x100000;
 
@@ -95,7 +96,7 @@ char *intToHexStr(unsigned int d);
 void init_keyboard(void);
 void enable_mouse(struct MOUSE_DEC *mdec);
 
-void show_mouse_info();
+void show_mouse_info(struct SHTCTL *shtctl, struct SHEET *sht_mouse);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
 
 struct AddrRangeDesc {
@@ -110,54 +111,51 @@ int get_memory_block_count(void);
 char *get_adr_buffer(void);
 void showMemoryInfo(struct AddrRangeDesc *desc, char *vram, int page,
                     int xsize, int color);
+void init_screen8(char *vram, int xsize, int ysize);
 
 static int mx = 0, my = 0;
 static int xsize = 0, ysize = 0;
+static unsigned char *buf_back, buf_mouse[256];
+
+#define COLOR_INVISIBLE 99
 
 void CMain(void) {
     initBootInfo(&bootInfo);
     char*vram = bootInfo.vgaRam;
     xsize = bootInfo.screenX, ysize = bootInfo.screenY;
+    struct SHTCTL *shtctl;
+    struct SHEET *sht_back = 0, *sht_mouse = 0;
 
     fifo8_init(&keyinfo, 32, keybuf);
     fifo8_init(&mouseinfo, 128, mousebuf);
+
     init_palette();
     init_keyboard();
     
-    boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
-    boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-28, xsize-1, ysize-28);
-    boxfill8(vram, xsize, COL8_FFFFFF, 0, ysize-27, xsize-1, ysize-27);
-    boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-26, xsize-1, ysize-1);
-    
-    boxfill8(vram, xsize, COL8_FFFFFF, 3, ysize-24, 59, ysize-24);
-    boxfill8(vram, xsize, COL8_FFFFFF, 2, ysize-24, 2, ysize-4);
-    boxfill8(vram, xsize, COL8_848484, 3, ysize-4,  59, ysize-4);
-    boxfill8(vram, xsize, COL8_848484, 59, ysize-23, 59, ysize-5);
-    boxfill8(vram, xsize, COL8_000000, 2, ysize-3, 59, ysize-3);
-    boxfill8(vram, xsize, COL8_000000, 60, ysize-24, 60, ysize-3);
+    int memCnt = get_memory_block_count();
+    struct AddrRangeDesc *memDesc = (struct AddrRangeDesc *)get_adr_buffer();
+    memman_init(memman);
+    memman_free(memman, 0x001008000, 0x3FEE8000);
 
-    boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-24, xsize-4, ysize-24);
-    boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-23, xsize-47, ysize-4);
-    boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
-    boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
-    
+    shtctl = shtctl_init(memman, vram, xsize, ysize);
+    sht_back    = sheet_alloc(shtctl);
+    sht_mouse   = sheet_alloc(shtctl);
+    buf_back    = (unsigned char *)memman_alloc_4k(memman, xsize*ysize);
+
+    sheet_setbuf(sht_back, buf_back, xsize, ysize, COLOR_INVISIBLE);
+    sheet_setbuf(sht_mouse, buf_mouse, 16, 16, COLOR_INVISIBLE);
+
+    init_screen8(buf_back, xsize, ysize);
+
+    init_mouse_cursor(buf_mouse, COLOR_INVISIBLE);
+    sheet_slide(shtctl, sht_back, 0, 0);
+
     mx = (xsize - 16) / 2;
     my = (ysize - 28 - 16) / 2;
-
-    init_mouse_cursor(mcursor, COL8_008484);
-    putblock(vram, xsize, 16, 16, mx, my, mcursor, 16);
-
-    int memCnt = get_memory_block_count();
-    char *pStr = intToHexStr(memCnt);
-    struct AddrRangeDesc *memDesc = (struct AddrRangeDesc *)get_adr_buffer();
-
-    memman_init(memman);
-    memman_free(memman, 0x001080000, 0x3FEE8000);
-    int memtotal = memman_total(memman)/(1024*1024);
-    char *pMemTotal = intToHexStr(memtotal);
-    showString(vram, xsize, 0, 0, COL8_FFFFFF, "total mem is:");
-    showString(vram, xsize, 17*8, 0, COL8_FFFFFF, pMemTotal);
-    showString(vram, xsize, 28*8, 0, COL8_FFFFFF, " MB");
+    sheet_slide(shtctl, sht_mouse, mx, my);
+    
+    sheet_updown(shtctl, sht_back, 0);
+    sheet_updown(shtctl, sht_mouse, 1);
 
     io_sti();
     enable_mouse(&mdec);
@@ -173,19 +171,41 @@ void CMain(void) {
             data = fifo8_get(&keyinfo);
             
             if (data == 0x1C) { // 按下回车键
-                showMemoryInfo(memDesc+count, vram, count, 
+                showMemoryInfo(memDesc+count, buf_back, count, 
                                 xsize, COL8_FFFFFF);
                 ++count;
                 if (count > memCnt) {
                     count = 0;
                 }
+
+                sheet_refresh(shtctl);
             }
 
         } else if (fifo8_status(&mouseinfo) != 0) {
-            show_mouse_info();
+            show_mouse_info(shtctl, sht_mouse);
         }
     }
 
+}
+
+void init_screen8(char *vram, int xsize, int ysize)
+{
+    boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
+    boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-28, xsize-1, ysize-28);
+    boxfill8(vram, xsize, COL8_FFFFFF, 0, ysize-27, xsize-1, ysize-27);
+    boxfill8(vram, xsize, COL8_C6C6C6, 0, ysize-26, xsize-1, ysize-1);
+
+    boxfill8(vram, xsize, COL8_FFFFFF, 3, ysize-24, 59, ysize-24);
+    boxfill8(vram, xsize, COL8_FFFFFF, 2, ysize-24, 2, ysize-4);
+    boxfill8(vram, xsize, COL8_848484, 3, ysize-4,  59, ysize-4);
+    boxfill8(vram, xsize, COL8_848484, 59, ysize-23, 59, ysize-5);
+    boxfill8(vram, xsize, COL8_000000, 2, ysize-3, 59, ysize-3);
+    boxfill8(vram, xsize, COL8_000000, 60, ysize-24, 60, ysize-3);
+
+    boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-24, xsize-4, ysize-24);
+    boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-23, xsize-47, ysize-4);
+    boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
+    boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
 }
 
 void computeMousePosition(struct MOUSE_DEC *mdec)
@@ -220,17 +240,18 @@ void drawMouse(char *vram)
     putblock(vram, xsize, 16, 16, mx, my, mcursor, 16);
 }
 
-void show_mouse_info(void)
+void show_mouse_info(struct SHTCTL *shtctl, struct SHEET *sht_mouse)
 {
-    char *vram = bootInfo.vgaRam;
+    char *vram = buf_back;
     unsigned char data = 0;
 
     io_sti();
     data = fifo8_get(&mouseinfo);
     if (mouse_decode(&mdec, data) != 0) {
-        eraseMouse(vram);
+        // eraseMouse(vram);
         computeMousePosition(&mdec);
-        drawMouse(vram);
+        // drawMouse(vram);
+        sheet_slide(shtctl, sht_mouse, mx, my);
     }
 }
 

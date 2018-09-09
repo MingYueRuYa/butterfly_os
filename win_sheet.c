@@ -1,5 +1,4 @@
 #include "win_sheet.h"
-#include "mem_utli.h"
 
 #define SHEET_USE 1
 struct SHEET *sheet_alloc(struct SHTCTL *ctl)
@@ -11,10 +10,10 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
             sht = &ctl->sheets0[i];
             sht->flags  = SHEET_USE;
             sht->height = -1;
-            return sth;
+            return sht;
         }
     }
-    return sth;
+    return sht;
 }
 
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram,
@@ -66,7 +65,7 @@ void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
             // 把后面的往前面移动 
             for (h = old; h > height; h--) {
                 ctl->sheets[h] = ctl->sheets[h-1];
-                ctl->sheets[h].height = h;
+                ctl->sheets[h]->height = h;
             } // for h
             ctl->sheets[height] = sht;
         } else {
@@ -74,29 +73,29 @@ void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
             if (ctl->top > old) {
                 for (h = old; h > ctl->top; h--) {
                     ctl->sheets[h] = ctl->sheets[h+1];
-                    ctl->sheets[h].height = h;
+                    ctl->sheets[h]->height = h;
                 } // for h
                 ctl->top--;
             } // if (ctl->top > old)
         } // if (height >= 0)
-        sheet_refresh(); 
+        sheet_refresh(ctl); 
     } else { // up
         if (old >= 0) {
             for (h = old; h > height; h--) {
                 ctl->sheets[h] = ctl->sheets[h+1];
-                ctl->sheets[h].height = h;
+                ctl->sheets[h]->height = h;
             } // for h
             ctl->sheets[height] = sht;
         } else {
             for (h == ctl->top; h >= height; h--) {
                 ctl->sheets[h+1] = ctl->sheets[h];
-                ctl->sheets[h+1] = h+1;
+                ctl->sheets[h+1]->height = h+1;
             } // for h
             
             ctl->sheets[height] = sht;
             ctl->top++;
         }  // if (old >= 0)
-        sheet_refresh(); 
+        sheet_refresh(ctl); 
     } // if (old > height)
 }
 
