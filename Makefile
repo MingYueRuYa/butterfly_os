@@ -19,3 +19,7 @@ win_sheet.o: win_sheet.c win_sheet.h
 mem_util.o: mem_util.c mem_util.h
 	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o mem_util.o \
 		mem_util.c
+
+.PHONY:clean
+clean:
+	rm -rf ./*.o
