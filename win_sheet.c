@@ -29,6 +29,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
     for (i = 0; i< MAX_SHEETS; ++i) {
         if (ctl->sheets0[i].flags == 0) {
             sht = &ctl->sheets0[i];
+	    ctl->sheets[i] = sht;
             sht->flags  = SHEET_USE;
             sht->height = -1;
             return sht;

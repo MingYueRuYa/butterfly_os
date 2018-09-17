@@ -65,6 +65,10 @@ public class OperatingSystem {
     }
 
     public static void main(String[] args) {
+        CKernelAsmPrecessor kernelPrecessor = new CKernelAsmPrecessor();
+        kernelPrecessor.process();
+        kernelPrecessor.createKernelBinary();
+
         OperatingSystem op = new OperatingSystem("boot.bat");
         op.makeFloppy();
     }

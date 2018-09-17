@@ -10,17 +10,17 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
 
-public class CKernelAsmProcessor {
+public class CKernelAsmPrecessor {
     private BufferedReader fileReader = null;
     StringBuffer fileBuffer = null;
 
-    public CKernelAsmProcessor() {
+    public CKernelAsmPrecessor() {
         try {
            File file = new File("kernel.bat"); 
            file.delete();
 
            fileReader   = new BufferedReader(new FileReader("ckernel_u.asm"));
-           File f       = new File("ckernel_u.asm");
+           File f       = new File("ckernenl_u.asm");
            fileBuffer   = new StringBuffer((int)f.length());
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -50,42 +50,41 @@ public class CKernelAsmProcessor {
     }
 
     public void createKernelBinary() {
-        handleOutofRangeError();
-
-        try {
-            Process process = Runtime.getRuntime().exec(
-                        "nasm -o kernel.bat kernle.asm");
-            readProcessOutput(process);
-        } catch (IOException e) {
-            e.printStackTrace(); 
-        }
+    	handleOutOfRangeError();
+    	
+    	try {
+			Process process = Runtime.getRuntime().exec("nasm -o kernel.bat kernel.asm");
+			readProcessOutput(process);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     private void readProcessOutput(Process process) {
-        read(process.getInputStream(), System.out);
-        read(process.getErrorStream(), System.err);
+    	read(process.getInputStream(), System.out);
+    	read(process.getErrorStream(), System.err);
     }
 
     private void read(InputStream inputStream, PrintStream out) {
-        try {
-            BufferedReader reader = new BufferedReader(
-                                        new InputStreamReader(inputStream));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                out.println(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                inputStream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+    	try {
+    		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+    		String line;
+    		while ((line = reader.readLine()) != null) {
+    			out.println(line);
+    		}
+    	} catch(IOException e) {
+    		e.printStackTrace();
+    	} finally {
+    		try {
+    			inputStream.close();
+    		} catch(IOException e) {
+    			e.printStackTrace();
+    		}
+    	}
     }
 
-    private void handleOutofRangeError() {
+    private void handleOutOfRangeError() {
         try {
             ArrayList<String> jumps = new ArrayList<String>();
             jumps.add("jz");
@@ -96,15 +95,14 @@ public class CKernelAsmProcessor {
             jumps.add("jle");
             jumps.add("jge");
 
-            fileReader      = new BufferedReader(new FileReader(
-                                                            "ckernel.asm"));
-            File f          = new File("ckernel.asm");
+            fileReader      = new BufferedReader(new FileReader("ckernel.asm"));
+            File f          = new File("ckernenl.asm");
             fileBuffer      = new StringBuffer((int)f.length());
             String lineText = null;
 
             while ((lineText = fileReader.readLine()) != null) {
                 String line = lineText.toLowerCase();
-                for (int i = 0; i < jumps.size(); ++i) {
+                for(int i = 0; i < jumps.size(); i++) {
                     if (line.contains(jumps.get(i))) {
                         int pos = line.indexOf(jumps.get(i));
                         String strFirst = line.substring(0, 
@@ -112,12 +110,11 @@ public class CKernelAsmProcessor {
                         String strSecond = line.substring(
                                 pos + jumps.get(i).length(), line.length());
 
-                        lineText = strFirst + "near" + strSecond;
+                        lineText = strFirst + " near " + strSecond;
                         break;
                     }
-                    
-                    fileBuffer.append(lineText).append("\r\n");
                 }
+                fileBuffer.append(lineText).append("\r\n");
             }
             fileReader.close();
             BufferedWriter bw = new BufferedWriter(
