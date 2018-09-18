@@ -332,6 +332,18 @@ void showFont8(char *vram, int xsize, int x, int y, char c, char* font) {
     }
 }
 
+void showString(struct SHTCTL *shtclt, struct SHEET *sht, int x, int y,
+                char color, unsigned *s)
+{
+    int begin = x;    
+    for (; *s != 0x00; s++) {
+        showFont8(sht->buf, sht->bxsize, x, y, color, systemFont+*s*16);
+        x += 8;
+    }
+    sheet_refresh(shtctl, sht, begin, y, x, y+16);
+}
+
+/*
 void showString(char *vram, int xsize, 
                 int x, int y, char color, 
                 unsigned char *s)
@@ -341,6 +353,7 @@ void showString(char *vram, int xsize,
        x += 8;
     }
 }
+*/
 
 void init_mouse_cursor(char *mouse, char bc)
 {

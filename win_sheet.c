@@ -99,32 +99,14 @@ void sheet_updown(struct SHTCTL *ctl, struct SHEET *sht, int height)
     } // if (old > height)
 }
 
-int sheet_refresh(struct SHTCTL *ctl)
+int sheet_refresh(struct SHTCTL *ctl, struct SHEET *sht, int bx0, int by0,
+                    int bx1, int by1)
 {
-    int h, bx, by, vx, vy;
-    unsigned char *buf, c, *vram = ctl->vram;
-    struct SHEET *sht;
-    for (h = 0; h <= ctl->top; h++) {
-        sht = ctl->sheets[h];
-        buf = sht->buf;
-        // 图层的高度
-        for (by = 0; by < sht->bysize; by++) {
-            // 转化为屏幕的y坐标
-            vy = sht->vy0 + by;
-            // 图层的宽度
-            for (bx = 0; bx < sht->bxsize; bx++) {
-                // 转化为屏幕的x坐标
-                vx = sht->vx0 + bx; 
-                // 拿出图层的像素点
-                c = buf[by*sht->bxsize+bx];
-                // 如果不是透明的就需要绘制，透明的则不需要绘制
-                if (c != sht->col_inv) {
-                    vram[vy*ctl->xsize+vx] = c;
-                }
-            } // for bx
-        } // for by
-    } // for h
-	return 0;
+    if (sht->height >= 0) {
+        sheet_refreshsub(ctl, sht->vx0+bx0, sht->vy0+by0, 
+                            sht->vx0+bx1, sht->vy0+by1);
+    }
+    return 0;
 }
 
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1)
@@ -136,12 +118,17 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1)
         sht = ctl->sheets[h];
     
         buf = sht->buf;
+        // 图层的高度
         for (by = 0; by < sht->bysize; by++) {
+            // 转化为屏幕的y坐标
             vy = sht->vy0 + by;
             for (bx = 0; bx < sht->bxsize; bx++) {
+                // 转化为屏幕的x坐标
                 vx = sht->vx0 + bx;
                 if (vx0 <= vx && vx < vx1 && vy0 <= vy && vy < vy1) {
+                    // 拿出图层的像素点
                     c = buf[by * sht->bxsize + vx];
+                    // 如果不是透明的就需要绘制，透明的则不需要绘制
                     if (c != sht->col_inv) {
                         vram[vy*ctl->xsize + vx] = c;
                     }
@@ -154,10 +141,20 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1)
 
 void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0)
 {
+//    sht->vx0 = vx0;
+//    sht->vy0 = vy0;
+//    if (sht->height >= 0) {
+//        sheet_refresh(ctl);
+//    }
+    
+    int old_vx0 = sht->vx0, old_vy0 = sht->vy0;
     sht->vx0 = vx0;
     sht->vy0 = vy0;
     if (sht->height >= 0) {
-        sheet_refresh(ctl);
+        sheet_refreshsub(ctl, old_vx0, old_vy0, 
+                            old_vx0+sht->bxsize, old_vy0+sht->bysize);
+        sheet_refreshsub(ctl, vx0, vy0, vx0+sht->bxsize, vy0+sht->bysize);
     }
+
 }
 
