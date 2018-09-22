@@ -112,6 +112,9 @@ void showMemoryInfo(struct SHTCTL *shtctl, struct SHEET *sht, struct AddrRangeDe
                     int xsize, int color);
 void init_screen8(char *vram, int x, int y);
 
+void message_box(struct SHTCTL *shtctl, char *title);
+void make_window8(struct SHTCTL *shtctl, struct SHEET *sht, char *title);
+
 static int mx = 0, my = 0;
 static int xsize = 0, ysize = 0;
 static unsigned char *buf_back, buf_mouse[256];
@@ -152,9 +155,11 @@ void CMain(void) {
     mx = (xsize - 16) / 2;
     my = (ysize - 28 - 16) / 2;
     sheet_slide(shtctl, sht_mouse, mx, my);
+
+    message_box(shtctl, "windown");
     
     sheet_updown(shtctl, sht_back, 0);
-    sheet_updown(shtctl, sht_mouse, 1);
+    sheet_updown(shtctl, sht_mouse, 100);
 
     io_sti();
     enable_mouse(&mdec);
@@ -205,6 +210,75 @@ void init_screen8(char *vram, int xsize, int ysize)
     boxfill8(vram, xsize, COL8_848484, xsize-47, ysize-23, xsize-47, ysize-4);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-47, ysize-3, xsize-4, ysize-3);
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
+}
+
+void message_box(struct SHTCTL *shtctl, char *title)
+{
+    struct SHEET *sht_win;
+    unsigned char *buf_win;
+    sht_win = sheet_alloc(shtctl);
+    buf_win = (unsigned char *)memman_alloc_4k(memman, 160*68);
+    sheet_setbuf(sht_win, buf_win, 168, 68, -1);
+
+    make_window8(shtctl, sht_win, title);
+
+    showString(shtctl, sht_win, 24, 28, COL8_000000,"Welcome to");
+    showString(shtctl, sht_win, 24, 44, COL8_000000,"My OS");
+
+    sheet_slide(shtctl, sht_win, 80, 72);
+    sheet_updown(shtctl, sht_win, 2);
+}
+
+void make_window8(struct SHTCTL *shtctl, struct SHEET *sht, char *title)
+{
+    static char closebtn[14][16] = {
+        "OOOOOOOOOOOOOOO@", 
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQQQ@@QQQQQ$@",
+        "OQQQQQ@@@@QQQQ$@",
+        "OQQQQ@@QQ@@QQQ$@",
+        "OQQQ@@QQQQ@@QQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "OQQQQQQQQQQQQQ$@",
+        "O$$$$$$$$$$$$$$@",
+        "@@@@@@@@@@@@@@@@"
+    };
+
+    int x, y;
+    char c;
+    int bxsize = sht->bxsize;
+    int bysize = sht->bysize;
+    boxfill8(sht->buf, bxsize, COL8_C6C6C6, 0, 0, bxsize-1, 0);
+    boxfill8(sht->buf, bxsize, COL8_FFFFFF, 1, 1, bxsize-2, 1);
+    boxfill8(sht->buf, bxsize, COL8_C6C6C6, 0, 0, 0, bysize-1);
+    boxfill8(sht->buf, bxsize, COL8_FFFFFF, 1, 1, 1, bysize-1);
+    boxfill8(sht->buf, bxsize, COL8_848484, bxsize-2, 1, bxsize-2, bysize-2);
+    boxfill8(sht->buf, bxsize, COL8_000000, bxsize-1, 0, bxsize-1, bysize-1);
+    boxfill8(sht->buf, bxsize, COL8_C6C6C6, 2, 2, bxsize-3, bysize-3);
+    boxfill8(sht->buf, bxsize, COL8_000084, 3, 3, bxsize-4, 20);
+    boxfill8(sht->buf, bxsize, COL8_848484, 1, bysize-2, bxsize-2, bysize-2);
+    boxfill8(sht->buf, bxsize, COL8_000000, 0, bysize-1, bxsize-1, bysize-1);
+
+    showString(shtctl, sht, 24, 4, COL8_FFFFFF, title);
+
+    for (y = 0; y < 14; y++) {
+        for (x = 0; x < 16; x++) {
+            c = closebtn[y][x];
+            if (c == '@') {
+                c = COL8_000000;
+            } else if (c == 's') {
+                c = COL8_848484;
+            } else {
+                c = COL8_FFFFFF;
+            }
+
+            sht->buf[(5+y) * sht->bxsize + (sht->bxsize-21+x)] = c;
+        }
+    }
 }
 
 void computeMousePosition(struct SHTCTL *shtctl, struct SHEET *sht,struct MOUSE_DEC* mdec)
