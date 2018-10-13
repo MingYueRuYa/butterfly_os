@@ -37,7 +37,7 @@ LABEL_IDT:
     Gate SelectorCode32, SpuriousHandler, 0, DA_386IGate
 %endrep
 
-.2Ch:
+.2CH:
     Gate SelectorCode32, mouseHandler, 0, DA_386IGate
 
 

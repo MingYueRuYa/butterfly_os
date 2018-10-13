@@ -428,7 +428,7 @@ char *intToHexStr(unsigned int d)
     str[10] = 0;
 
     int i = 2;
-    for (; i<10; i++) {
+    for (; i < 10; i++) {
         str[i] = '0';
     }
 

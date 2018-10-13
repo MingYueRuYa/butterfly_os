@@ -1,6 +1,6 @@
 #!/bin/bash
 
-c_file_name="write_vga_show_memory"
+c_file_name="write_vga_desktop"
 c_kernel_name="ckernel"
 
 ShowTip() {

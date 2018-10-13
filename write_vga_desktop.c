@@ -112,7 +112,7 @@ void showMemoryInfo(struct SHTCTL *shtctl, struct SHEET *sht, struct AddrRangeDe
                     int xsize, int color);
 void init_screen8(char *vram, int x, int y);
 
-void message_box(struct SHTCTL *shtctl, char *title);
+struct SHEET* message_box(struct SHTCTL *shtctl, char *title);
 void make_window8(struct SHTCTL *shtctl, struct SHEET *sht, char *title);
 
 static int mx = 0, my = 0;
@@ -156,7 +156,7 @@ void CMain(void) {
     my = (ysize - 28 - 16) / 2;
     sheet_slide(shtctl, sht_mouse, mx, my);
 
-    message_box(shtctl, "windown");
+    struct SHEET* shtMsgBox = message_box(shtctl, "counter");
     
     sheet_updown(shtctl, sht_back, 0);
     sheet_updown(shtctl, sht_mouse, 100);
@@ -166,17 +166,23 @@ void CMain(void) {
 
     int data    = 0;
     int count   = 0;
+    int counter = 0;
     for(;;) {
+        char *pStr = intToHexStr(counter);
+        counter++;
+        boxfill8(shtMsgBox->buf, 160, COL8_C6C6C6, 40, 28, 119, 43);
+        showString(shtctl, shtMsgBox, 40, 28, COL8_000000, pStr);
+
         io_cli();
         if ((fifo8_status(&keyinfo) + fifo8_status(&mouseinfo)) == 0) {
-            io_stihlt();
+            io_sti();
         } else if (fifo8_status(&keyinfo) != 0) {
             io_sti();
             data = fifo8_get(&keyinfo);
             
             if (data == 0x1C) { // 按下回车键
-                showMemoryInfo(shtctl, sht_back, memDesc + count, buf_back, count, 
-                                xsize, COL8_FFFFFF);
+                showMemoryInfo(shtctl, sht_back, 
+                    memDesc + count, buf_back, count, xsize, COL8_FFFFFF);
                 ++count;
                 if (count > memCnt) {
                     count = 0;
@@ -212,7 +218,7 @@ void init_screen8(char *vram, int xsize, int ysize)
     boxfill8(vram, xsize, COL8_FFFFFF, xsize-3,  ysize-24, xsize-3, ysize-3);
 }
 
-void message_box(struct SHTCTL *shtctl, char *title)
+struct SHEET* message_box(struct SHTCTL *shtctl, char *title)
 {
     struct SHEET *sht_win;
     unsigned char *buf_win;
@@ -227,6 +233,7 @@ void message_box(struct SHTCTL *shtctl, char *title)
 
     sheet_slide(shtctl, sht_win, 80, 72);
     sheet_updown(shtctl, sht_win, 2);
+    return sht_win;
 }
 
 void make_window8(struct SHTCTL *shtctl, struct SHEET *sht, char *title)
