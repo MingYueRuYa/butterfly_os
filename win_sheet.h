@@ -10,7 +10,7 @@ struct SHEET {
 
 #define MAX_SHEETS 256
 struct SHTCTL {
-    unsigned char *vram;
+    unsigned char *vram, *map;
     int xsize, ysize, top;
     // 指向的图层指针
     struct SHEET *sheets[MAX_SHEETS];
@@ -33,4 +33,7 @@ void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0);
 
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, 
                         int h0);
+
+void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, 
+                        int vx1, int vy1, int h0);
 #endif // WIN_SHEET_H
