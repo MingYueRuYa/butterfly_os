@@ -32,7 +32,7 @@ int sheet_refresh(struct SHTCTL *ctl, struct SHEET *sht, int bx0, int by0, int b
 void sheet_slide(struct SHTCTL *ctl, struct SHEET *sht, int vx0, int vy0);
 
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, 
-                        int h0);
+                        int h0, int h1);
 
 void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, 
                         int vx1, int vy1, int h0);
