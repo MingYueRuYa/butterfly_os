@@ -26,9 +26,12 @@ SelectorVram    equ LABEL_DESC_VRAM - LABEL_GDT
 SelectorFont    equ LABEL_DESC_FONT - LABEL_GDT
 
 LABEL_IDT:
-%rep 33 
+%rep 32 
     Gate SelectorCode32, SpuriousHandler, 0, DA_386IGate
 %endrep
+
+.020h:
+    Gate SelectorCode32, timerHandler, 0, DA_386IGate
 
 .021h:
     Gate SelectorCode32, KeyBoardHandler, 0, DA_386IGate
@@ -156,7 +159,7 @@ init8259A:
     out 0A1h, al
     call io_delay
 
-    mov al, 11111001b
+    mov al, 11111000b
     out 021h, al
     call io_delay
 
@@ -221,6 +224,22 @@ mouseHandler equ _mouseHandler - $$
     mov eax, esp
     push eax
     call intHandlerForMouse
+
+    pop eax
+    mov esp, eax
+    popad
+    pop ds 
+    pop es
+    iretd
+
+_timerHandler:
+timerHandler equ _timerHandler - $$
+    push es
+    push ds
+    pushad
+    mov eax, esp
+    push eax
+    call intHandlerForTimer
 
     pop eax
     mov esp, eax

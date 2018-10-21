@@ -21,6 +21,8 @@
 
 #include "mem_util.h"
 #include "win_sheet.h"
+#include "timer.h"
+#include "global_define.h"
 
 struct MEMMAN* memman = (struct MEMMAN *)0x100000;
 
@@ -28,10 +30,8 @@ char get_font_data(int c, int offset);
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
-void io_out(int port, int data);
 int  io_load_eflags(void);
 void io_store_eflags(int eflags);
-void show_char(void);
 
 void init_palette(void);
 void set_palette(int start, int end, unsigned char *rgb);
@@ -59,15 +59,7 @@ static struct BOOTINFO bootInfo;
 static char mcursor[256];
 
 static char keyval[5] = {'0', 'X', 0, 0, 0};
-//struct KEYBUF {
-//    unsigned char key_buf[32];
-//    int next_r, next_w, len;
-//};
 
-struct FIFO8 {
-    unsigned char *buf;
-    int p, q, size, free, flags;
-};
 
 static struct FIFO8 keyinfo;
 static struct FIFO8 mouseinfo;
@@ -81,10 +73,8 @@ struct MOUSE_DEC {
 
 static struct MOUSE_DEC mdec;
 
-void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf);
-int fifo8_put(struct FIFO8 *fifo, unsigned char data);
-int fifo8_get(struct FIFO8 *fifo);
-int fifo8_status(struct FIFO8 *fifo);
+static struct FIFO8 timerinfo;
+static char timerbuf[8];
 
 // static struct KEYBUF keybuf;
 
@@ -128,6 +118,10 @@ void CMain(void) {
     struct SHTCTL *shtctl;
     struct SHEET *sht_back = 0, *sht_mouse = 0;
 
+	init_pit();
+	fifo8_init(&timerinfo, 8, timerbuf);
+	settimer(500, &timerinfo, 1);
+
     fifo8_init(&keyinfo, 32, keybuf);
     fifo8_init(&mouseinfo, 128, mousebuf);
 
@@ -166,15 +160,15 @@ void CMain(void) {
 
     int data    = 0;
     int count   = 0;
-    int counter = 0;
+    struct TIMERCTL *timerctl = getTimerController();
     for(;;) {
-        char *pStr = intToHexStr(counter);
-        counter++;
+        char *pStr = intToHexStr(timerctl->timeout);
         boxfill8(shtMsgBox->buf, 160, COL8_C6C6C6, 40, 28, 119, 43);
         showString(shtctl, shtMsgBox, 40, 28, COL8_000000, pStr);
 
         io_cli();
-        if ((fifo8_status(&keyinfo) + fifo8_status(&mouseinfo)) == 0) {
+        if ((fifo8_status(&keyinfo) + fifo8_status(&mouseinfo)
+		+ fifo8_status(&timerinfo)) == 0) {
             io_sti();
         } else if (fifo8_status(&keyinfo) != 0) {
             io_sti();
@@ -193,7 +187,10 @@ void CMain(void) {
 
         } else if (fifo8_status(&mouseinfo) != 0) {
             show_mouse_info(shtctl, sht_back, sht_mouse);
-        }
+        } else if (fifo8_status(&timerinfo) != 0) {
+            io_sti();
+            showString(shtctl, sht_back, 0, 0, COL8_FFFFFF, "5[sec]");
+	    }
     }
 
 }
@@ -585,54 +582,6 @@ void intHandlerForMouse(char *esp)
     fifo8_put(&mouseinfo, data);
 }
 
-void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf)
-{
-    fifo->size  = size;
-    fifo->buf   = buf;
-    fifo->free  = size;
-    fifo->flags = 0;
-    fifo->p     = 0;
-    fifo->q     = 0;
-    return;
-}
-
-#define FLAGS_OVERRUN 0x0001
-int fifo8_put(struct FIFO8 *fifo, unsigned char data)
-{
-    if (fifo->free == 0) {
-        fifo->flags |= FLAGS_OVERRUN;
-        return -1;
-    }
-    
-    fifo->buf[fifo->p] = data;
-    fifo->p++;
-    if (fifo->p == fifo->size) {
-        fifo->p = 0;
-    }
-    fifo->free--;
-    return 0;
-}
-
-int fifo8_get(struct FIFO8 *fifo)
-{
-    int data;
-    if (fifo->free == fifo->size) {
-        return -1;
-    }
-
-    data = fifo->buf[fifo->q];
-    fifo->q++;
-    if (fifo->q == fifo->size) {
-        fifo->q = 0;
-    }
-    fifo->free++;
-    return data;
-}
-
-int fifo8_status(struct FIFO8 *fifo)
-{
-    return fifo->size - fifo->free;
-}
 
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat)
 {
