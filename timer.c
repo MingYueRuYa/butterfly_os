@@ -11,6 +11,20 @@ static struct TIMERCTL timerctl;
 
 void io_out8(int, int);
 
+void init_pit(void)
+{
+    io_out8(PIT_CTRL, 0x34);
+    io_out8(PIT_CNT0, 0x9c);
+    io_out8(PIT_CNT0, 0x2e);
+
+    timerctl.count = 0;
+    int i = 0;
+    for (; i < MAX_TIMER; i++) {
+        // not used
+        timerctl.timer[i].flags = 0;
+    }
+}
+
 struct TIMER *timer_alloc(void)
 {
     int i = 0;
