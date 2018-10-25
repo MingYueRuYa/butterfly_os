@@ -38,6 +38,8 @@ void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram,int xsize,  unsigned char c, int x, int y,
 int x0, int y0);
 
+static char keytable[0x54] = {0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0,  0, 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0,   0,   'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', ':', 0,   0,   ']', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0, 0,   0,   0,   0,   0,   0,   0,   '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.'};
+
 struct  BOOTINFO {
     char* vgaRam;
     short screenX, screenY;
@@ -189,6 +191,9 @@ void CMain(void) {
                 }
 
                 // sheet_refresh(shtctl);
+            } else if (keytable[data] != 0) {
+                char buf[2] = {keytable[data], 0};
+                showString(shtctl, shtMsgBox, 40, 28, COL8_000000, buf);
             }
 
         } else if (fifo8_status(&mouseinfo) != 0) {
@@ -247,8 +252,8 @@ struct SHEET* message_box(struct SHTCTL *shtctl, char *title)
 
     make_window8(shtctl, sht_win, title);
 
-    showString(shtctl, sht_win, 24, 28, COL8_000000,"Welcome to");
-    showString(shtctl, sht_win, 24, 44, COL8_000000,"My OS");
+//    showString(shtctl, sht_win, 24, 28, COL8_000000,"Welcome to");
+//    showString(shtctl, sht_win, 24, 44, COL8_000000,"My OS");
 
     sheet_slide(shtctl, sht_win, 80, 72);
     sheet_updown(shtctl, sht_win, 2);
