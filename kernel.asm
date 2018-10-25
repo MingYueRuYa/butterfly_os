@@ -76,8 +76,8 @@ LABEL_MEM_CHK_FAIL:
     mov dword [dwMCRNumber], 0
 LABEL_MEM_CHK_OK:
     ; 设置显卡的工作模式
-    mov al, 0x13
-    mov ah, 0
+    mov bx, 0x4101
+    mov ax, 0x4f02
     int 0x10
 
     xor eax, eax

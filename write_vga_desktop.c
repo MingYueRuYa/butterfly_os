@@ -357,9 +357,9 @@ void show_mouse_info(struct SHTCTL *shtctl, struct SHEET *sht_back,struct SHEET 
 }
 
 void initBootInfo(struct BOOTINFO *pBootInfo) {
-    pBootInfo->vgaRam = (char*)0xa0000;
-    pBootInfo->screenX = 320;
-    pBootInfo->screenY = 200;
+    pBootInfo->vgaRam = (char*)0xe0000000;
+    pBootInfo->screenX = 640;
+    pBootInfo->screenY = 480;
 }
 
 void showString(struct SHTCTL *shtctl, struct SHEET *sht, int x, int y,
