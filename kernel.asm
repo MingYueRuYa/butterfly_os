@@ -14,6 +14,10 @@ LABEL_DESC_VIDEO:   Descriptor      0B8000h,    0fffffh,         DA_DRW
 LABEL_DESC_VRAM:    Descriptor      0,          0fffffh,     DA_DRW | DA_LIMIT_4K
 LABEL_DESC_STACK:   Descriptor      0,          TopOfStack,     DA_DRWA | DA_32
 LABEL_DESC_FONT:    Descriptor      0,          0fffffh,         DA_DRW | DA_LIMIT_4K
+LABEL_DESC_6:       Descriptor      0,          0fffffh,        0409Ah
+LABEL_DESC_7:       Descriptor      0,                0,        0
+LABEL_DESC_8:       Descriptor      0,                0,        0
+LABEL_DESC_9:       Descriptor      0,                0,        0
 
 GdtLen  equ $ - LABEL_GDT
 GdtPtr  dw  GdtLen - 1
@@ -329,6 +333,34 @@ get_memory_block_count:
 
 get_adr_buffer:
     mov eax, MemChkBuf
+    ret
+
+get_addr_gdt:
+    mov eax, LABEL_GDT
+    ret
+
+get_code32_addr:
+    mov eax, LABEL_SEG_CODE32
+    ret
+
+load_tr:
+    LTR [esp+4]
+    ret
+
+taskswitch8:
+    jmp 8*8:0
+    ret
+
+taskswitch7:
+    jmp 7*8:0
+    ret
+
+taskswitch6:
+    jmp 6*8:0
+    ret
+
+taskswitch9:
+    jmp 9*8:0
     ret
 
 # %include "fontData.inc"
