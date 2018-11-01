@@ -23,6 +23,7 @@
 #include "win_sheet.h"
 #include "timer.h"
 #include "global_define.h"
+#include "multi_task.h"
 
 struct MEMMAN* memman = (struct MEMMAN *)0x100000;
 
@@ -181,6 +182,51 @@ void CMain(void) {
 
     io_sti();
     enable_mouse(&mdec);
+
+    int addr_code32 = get_code32_addr();
+
+    static struct TSS32 tss_a, tss_b;
+    struct SEGMENT_DESCRIPTOR *gdt = 
+                                (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
+    tss_a.ldtr  = 0;
+    tss_a.iomap = 0x40000000;
+    tss_b.ldtr  = 0;
+    tss_b.iomap = 0x40000000;
+
+    set_segmdesc(gdt + 7, 103, (int) &tss_a, AR_TSS32);
+    set_segmdesc(gdt + 8, 103, (int) &tss_a, AR_TSS32);
+    set_segmdesc(gdt + 9, 103, (int) &tss_b, AR_TSS32);
+    set_segmdesc(gdt + 6, 0xffff, (int) task_b_main, AR_TSS32);
+    
+    load_tr(7*8);
+
+    taskswitch8();
+    char *p = intToHexStr(tss_a.eflags);
+    showString(shtctl, sht_back, 0, 0, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.esp);
+    showString(shtctl, sht_back, 0, 16, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.es / 8);
+    showString(shtctl, sht_back, 0, 32, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.cs / 8);
+    showString(shtctl, sht_back, 0, 48, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.ss / 8);
+    showString(shtctl, sht_back, 0, 64, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.ds / 8);
+    showString(shtctl, sht_back, 0, 80, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.gs / 8);
+    showString(shtctl, sht_back, 0, 96, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.fs / 8);
+    showString(shtctl, sht_back, 0, 112, COL8_FFFFFF, p);
+
+    p = intToHexStr(tss_a.cr3 / 8);
+    showString(shtctl, sht_back, 0, 128, COL8_FFFFFF, p);
 
     int data    = 0;
     int count   = 0;
