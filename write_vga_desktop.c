@@ -123,13 +123,15 @@ static unsigned char *buf_back, buf_mouse[256];
 
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 static struct SHEET *shtMsgBox;
+static struct SHTCTL *shtctl;
+static struct SHEET *sht_back, *sht_mouse;
+
+void task_b_main(void);
 
 void CMain(void) {
     initBootInfo(&bootInfo);
     char*vram = bootInfo.vgaRam;
     xsize = bootInfo.screenX, ysize = bootInfo.screenY;
-    struct SHTCTL *shtctl;
-    struct SHEET *sht_back = 0, *sht_mouse = 0;
 
     struct TIMER *timer, *timer2, *timer3;
     init_pit();
@@ -196,7 +198,7 @@ void CMain(void) {
     set_segmdesc(gdt + 7, 103, (int) &tss_a, AR_TSS32);
     set_segmdesc(gdt + 8, 103, (int) &tss_a, AR_TSS32);
     set_segmdesc(gdt + 9, 103, (int) &tss_b, AR_TSS32);
-    // set_segmdesc(gdt + 6, 0xffff, (int) task_b_main, AR_TSS32);
+    set_segmdesc(gdt + 6, 0xffff, (int)task_b_main, 0x409a);
     
     load_tr(7*8);
 
@@ -228,8 +230,29 @@ void CMain(void) {
     p = intToHexStr(tss_a.cr3 / 8);
     showString(shtctl, sht_back, 0, 128, COL8_FFFFFF, p);
 
+    int task_b_esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024;
+    tss_b.eip = (task_b_main - addr_code32);
+    tss_b.eflags    = 0x00000202;
+    tss_b.eax       = 0;
+    tss_b.ecx       = 0;
+    tss_b.edx       = 0;
+    tss_b.ebx       = 0;
+    tss_b.esp       = 1024;
+    tss_b.ebp       = 0;
+    tss_b.esi       = 0;
+    tss_b.edi       = 0;
+    tss_b.es        = tss_a.es;
+    tss_b.cs        = tss_a.cs;
+    tss_b.ss        = tss_a.ss;
+    tss_b.ds        = tss_a.ds;
+    tss_b.fs        = tss_a.fs;
+    tss_b.gs        = tss_a.gs;
+
+
     int data    = 0;
     int count   = 0;
+    int i       = 0;
+
     for(;;) {
         io_cli();
         if ((fifo8_status(&keyinfo) + fifo8_status(&mouseinfo)
@@ -269,9 +292,11 @@ void CMain(void) {
             io_sti();
             int i = fifo8_get(&timerinfo);
             if (i == 10) {
-                showString(shtctl, sht_back, 0, 0, COL8_FFFFFF, "5[sec]");
+                showString(shtctl, sht_back, 0, 176, 
+                            COL8_FFFFFF, "switch to task b");
+                taskswitch9();
             } else if (i == 2) {
-                showString(shtctl, sht_back, 0, 16, COL8_FFFFFF, "3[sec]");
+                // showString(shtctl, sht_back, 0, 16, COL8_FFFFFF, "3[sec]");
             } else {
                 if (i != 0) {
                     timer_init(timer3, &timerinfo, 0);
@@ -292,6 +317,37 @@ void CMain(void) {
 	    } // else if 
     } // for
 
+}
+
+void task_b_main(void)
+{
+    showString(shtctl, sht_back, 0, 144, COL8_FFFFFF, "enter task b");
+    struct FIFO8 timerinfo_b;
+    char timerbuf_b[8];
+    struct TIMER *timer_b = 0;
+
+    int i = 0;
+    fifo8_init(&timerinfo_b, 8, timerbuf_b);
+    timer_b = timer_alloc();
+    timer_init(timer_b, &timerinfo_b, 123);
+
+    timer_settime(timer_b, 500);
+
+    for (;;) {
+        io_cli();
+        
+        if (fifo8_status(&timerinfo_b) == 0) {
+            io_sti();
+        } else {
+            i = fifo8_get(&timerinfo_b);
+            io_sti();
+            if (i == 123) {
+                showString(shtctl, sht_back, 0, 160, 
+                            COL8_FFFFFF, "switch back");
+                taskswitch7();
+            }
+        }
+    }
 }
 
 void init_screen8(char *vram, int xsize, int ysize)
