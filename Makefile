@@ -4,10 +4,10 @@ ckernel: kernel_u.asm
 kernel_u.asm: ckernel.o
 	objconv -fnasm ./bin/ckernel.o -o ./bin/ckernel_u.asm
 
-ckernel.o: write_vga_desktop.o win_sheet.o mem_util.o timer.o global_define.o
+ckernel.o: write_vga_desktop.o win_sheet.o mem_util.o timer.o global_define.o 	multi_task.o 
 	ld -m elf_i386 -r ./bin/write_vga_desktop.o ./bin/mem_util.o \
 		./bin/win_sheet.o -o ./bin/ckernel.o ./bin/timer.o \
-		./bin/global_define.o
+		./bin/global_define.o ./bin/multi_task.o
 
 write_vga_desktop.o : write_vga_desktop.c win_sheet.c win_sheet.h mem_util.c \
 	mem_util.h timer.h timer.c global_define.h global_define.c
@@ -29,6 +29,10 @@ timer.o: timer.c timer.h
 global_define.o: global_define.c global_define.h
 	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/global_define.o \
 		global_define.c
+
+multi_task.o: multi_task.c multi_task.h
+	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/multi_task.o \
+		multi_task.c
 
 .PHONY:clean
 clean:

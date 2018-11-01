@@ -196,7 +196,7 @@ void CMain(void) {
     set_segmdesc(gdt + 7, 103, (int) &tss_a, AR_TSS32);
     set_segmdesc(gdt + 8, 103, (int) &tss_a, AR_TSS32);
     set_segmdesc(gdt + 9, 103, (int) &tss_b, AR_TSS32);
-    set_segmdesc(gdt + 6, 0xffff, (int) task_b_main, AR_TSS32);
+    // set_segmdesc(gdt + 6, 0xffff, (int) task_b_main, AR_TSS32);
     
     load_tr(7*8);
 
