@@ -71,11 +71,9 @@ void intHandlerForTimer(char *esp) {
         }
 
         if (ts != 0) {
-            mt_taskswitch();
+            task_switch();
         }
     }
-
-
     return;
 }
 
