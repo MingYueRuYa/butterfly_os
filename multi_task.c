@@ -1,7 +1,11 @@
+#include "mem_util.h"
 #include "multi_task.h"
 #include "timer.h"
 
-void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar)
+void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, 
+                    unsigned int limit, 
+                    int base, 
+                    int ar)
 {
 	if (limit > 0xfffff) {
 		ar |= 0x8000; /* G_bit = 1 */
@@ -26,7 +30,7 @@ struct TASK *task_init(struct MEMMAN *memman)
     struct TASK *task;
     struct SEGMENT_DESCRIPTOR *gdt = 
                                 (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
-    taskctl = (struct TASKCTL *)memman_allock_4k(memman, SIZE_OF_TASKCTL);
+    taskctl = (struct TASKCTL *)memman_alloc_4k(memman, SIZE_OF_TASKCTL);
 
     for (i=0; i<MAX_TASKS; ++i) {
         taskctl->task0[i].flags = 0;
@@ -79,13 +83,13 @@ void task_run(struct TASK *task)
 {
     task->flags = 2;
     taskctl->tasks[taskctl->running] = task;
-    task->running++;
+    taskctl->running++;
     return;
 }
 
 void task_switch(void)
 {
-    timer_settimer(task_timer, 100); 
+    timer_settime(task_timer, 100); 
 
     // 重头开始调度
     if (taskctl->running >= 2) {

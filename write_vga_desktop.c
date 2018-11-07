@@ -275,6 +275,7 @@ void CMain(void) {
            if (i == 10) {
                 showString(shtctl, sht_back, pos, 144, COL8_FFFFFF,
                  "A"); 
+		timer_settime(timer, 100);
                 pos += 8;
            } else if (i == 2) {
                showString(shtctl, sht_back, 0, 32, COL8_FFFFFF, "3[sec]");
