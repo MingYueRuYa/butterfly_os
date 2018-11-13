@@ -107,3 +107,45 @@ struct TIMER *GetStaticTimer()
     return task_timer;
 }
 
+void task_sleep(struct TASK *task)
+{
+    int i   = 0;
+    char ts = 0;
+    
+    if (task->flags == 2) {
+        // 是不是当前进程要暂停
+        if (task == taskctl->tasks[taskctl->now]) {
+            ts = 1;
+        }
+        
+        if (i = 0; i < taskctl->running; ++i) {
+            if (taskctl->tasks[i] == task) {
+                break;
+            }
+        }
+    
+        
+        taskctl->running--;
+        if (i < taskctl->now) {
+            taskctl->now--;
+        }
+
+        for (; i < taskctl->running; ++i) {
+            // 通过把后面的任务往前面覆盖，实现将前任务移除掉
+            taskctl->tasks[i] = taskctl->tasks[i+1];
+        }
+
+        task->flags = 1;
+        if (ts != 0) {
+            // 如果当前挂起的任务正好是当前正在前台运行的任务，那么将第0个任务
+            // 调度前台
+            if (taskctl->now >= taskctl->running) {
+                taskctl->now = 0;
+            }
+
+            farjmp(0, taskctl->tasks[taskctl->now]->sel);
+        }
+    }
+    return;
+}
+

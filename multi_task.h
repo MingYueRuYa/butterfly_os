@@ -40,5 +40,6 @@ struct TASK *task_init(struct MEMMAN *memman);
 void mt_taskswitch();
 struct TIMER *GetStaticTimer();
 struct TASK *task_alloc(void);
+void task_sleep(struct TASK *task);
 
 #endif // multi_task_h

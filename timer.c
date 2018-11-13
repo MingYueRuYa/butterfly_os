@@ -19,6 +19,7 @@ void  init_pit(void) {
     int i;
     for (i = 0; i < MAX_TIMER; i++) {
         timerctl.timer[i].flags = 0; //not used
+        timerctl.timer[i].fifo  = 0;
     }
 }
 

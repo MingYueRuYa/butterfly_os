@@ -148,6 +148,9 @@ void CMain(void) {
 
 
     fifo8_init(&timerinfo, 8, timerbuf);
+    fifo8_init(&keyinfo, 32, keybuf);
+    fifo8_init(&mouseinfo, 128, mousebuf);
+
     timer = timer_alloc();
     timer_init(timer, &timerinfo, 10);
     timer_settime(timer, 100);
@@ -161,11 +164,6 @@ void CMain(void) {
     timer3 = timer_alloc();
     timer_init(timer3, &timerinfo, 1);
     timer_settime(timer3, 50);
-
-
-    fifo8_init(&keyinfo, 32, keybuf);
-    fifo8_init(&mouseinfo, 128, mousebuf);
-
 
     init_palette();
     init_keyboard();
@@ -214,6 +212,10 @@ void CMain(void) {
     static struct TASK *task_b;
 
     task_a = task_init(memman);
+
+    // 将task_a 附着到keyinfo事件上
+    keyinfo.task = task_a;
+
     task_b = task_alloc();
     task_b->tss.ldtr    = 0;
     task_b->tss.iomap   = 0x40000000;
@@ -233,6 +235,7 @@ void CMain(void) {
     int i  = 0; 
 
     int pos = 0;
+    int stop_task_A = 0;
 
     for(;;) {
 
@@ -246,7 +249,13 @@ void CMain(void) {
            data = fifo8_get(&keyinfo);
            
            if (data == 0x1C) {
-               showMemoryInfo(shtctl, sht_back,  memDesc + count, buf_back, count, xsize, COL8_FFFFFF);
+               showMemoryInfo(shtctl, 
+                              sht_back,  
+                              memDesc + count, 
+                              buf_back, 
+                              count, 
+                              xsize, 
+                              COL8_FFFFFF);
                count = (count+1);
                if (count > memCnt) {
                   count = 0;
@@ -275,8 +284,13 @@ void CMain(void) {
            if (i == 10) {
                 showString(shtctl, sht_back, pos, 144, COL8_FFFFFF,
                  "A"); 
-		timer_settime(timer, 100);
+		        timer_settime(timer, 100);
                 pos += 8;
+                if (pos > 40 && stop_task_A == 0) {
+                    io_cli();
+                    task_sleep(task_a);
+                    io_sti();
+                }
            } else if (i == 2) {
                showString(shtctl, sht_back, 0, 32, COL8_FFFFFF, "3[sec]");
            } else {

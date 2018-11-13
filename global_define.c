@@ -1,6 +1,6 @@
 #include "global_define.h"
 
-void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf)
+void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf, TASK *task)
 {
     fifo->size  = size;
     fifo->buf   = buf;
@@ -8,6 +8,7 @@ void fifo8_init(struct FIFO8 *fifo, int size, unsigned char *buf)
     fifo->flags = 0;
     fifo->p     = 0;
     fifo->q     = 0;
+    fifo->task  = task;
     return;
 }
 
@@ -25,6 +26,14 @@ int fifo8_put(struct FIFO8 *fifo, unsigned char data)
         fifo->p = 0;
     }
     fifo->free--;
+
+    if (fifo->task != 0) {
+        // 如果不在运行状态
+        if (fifo->task->flags != 2) {
+            task_run(fifo->task);
+        }
+    }
+
     return 0;
 }
 
