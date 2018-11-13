@@ -118,7 +118,7 @@ void task_sleep(struct TASK *task)
             ts = 1;
         }
         
-        if (i = 0; i < taskctl->running; ++i) {
+        for (i = 0; i < taskctl->running; ++i) {
             if (taskctl->tasks[i] == task) {
                 break;
             }

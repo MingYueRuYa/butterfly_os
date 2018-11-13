@@ -147,9 +147,9 @@ void CMain(void) {
     init_pit();
 
 
-    fifo8_init(&timerinfo, 8, timerbuf);
-    fifo8_init(&keyinfo, 32, keybuf);
-    fifo8_init(&mouseinfo, 128, mousebuf);
+    fifo8_init(&timerinfo, 8, timerbuf, 0);
+    fifo8_init(&keyinfo, 32, keybuf, 0);
+    fifo8_init(&mouseinfo, 128, mousebuf, 0);
 
     timer = timer_alloc();
     timer_init(timer, &timerinfo, 10);
@@ -270,7 +270,7 @@ void CMain(void) {
                    showString(shtctl,  shtMsgBox, cursor_x, 28, COL8_000000, buf);
                    cursor_x += 8;
                 
-              
+		      stop_task_A = 1;              
               boxfill8(shtMsgBox->buf, shtMsgBox->bxsize, cursor_c, cursor_x,
               28, cursor_x + 7, 43);
               sheet_refresh(shtctl, shtMsgBox, cursor_x, 28, cursor_x+8, 44);
@@ -321,7 +321,7 @@ void task_b_main(void) {
 
     int i = 0;
  
-    fifo8_init(&timerinfo_b, 8, timerbuf_b);
+    fifo8_init(&timerinfo_b, 8, timerbuf_b, 0);
     timer_b = timer_alloc();
     timer_init(timer_b, &timerinfo_b, 123);
    
@@ -337,7 +337,7 @@ void task_b_main(void) {
            i = fifo8_get(&timerinfo_b);
            io_sti();
            if (i == 123) {
-               showString(shtctl, sht_back, pos, 176, COL8_FFFFFF, "B");
+               showString(shtctl, sht_back, pos, 192, COL8_FFFFFF, "B");
               // farjmp(0, 8*8);
                // TODO 这段代码可能不需要等待验证
                timer_settime(timer_b, 100);
