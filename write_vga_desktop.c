@@ -128,7 +128,7 @@ static struct SHEET* shtMsgBox;
 static struct SHTCTL *shtctl;
 static struct SHEET *sht_back, *sht_mouse;
 
-void task_b_main(void);
+void task_b_main(struct SHEET *sht_win_b);
 
 
 static int task_b = 0;
@@ -138,6 +138,9 @@ void CMain(void) {
 
     initBootInfo(&bootInfo);
 
+    unsigned char *buf_win_b;
+    struct SHEET *sht_win_b[3];
+    static struct TASK *task_b[3];
 
     char*vram = bootInfo.vgaRam;
     xsize = bootInfo.screenX, ysize = bootInfo.screenY;
@@ -209,30 +212,47 @@ void CMain(void) {
 
     int addr_code32 = get_code32_addr();
     static struct TASK *task_a;
-    static struct TASK *task_b;
 
     task_a = task_init(memman);
 
     // 将task_a 附着到keyinfo事件上
     keyinfo.task = task_a;
+    char taskTitle[6] = {'t', 'a', 's', 'k', 0, 0};
 
-    task_b = task_alloc();
-    task_b->tss.ldtr    = 0;
-    task_b->tss.iomap   = 0x40000000;
+    int i = 0;
+    for (; i < 2; ++i) {
+        sht_win_b[i] = sheet_alloc(shtctl);
+        buf_win_b = (unsigned char *)memman_alloc_4k(memman, 144*52);
+        char c = 'b' + i;
+        taskTitle[4] = c;
+        sheet_setbuf(sht_win_b[i], buf_win_b, 144, 52, -1);
+        make_window8(shtctl, sht_win_b[i], taskTitle);
 
-    task_b->tss.eip = (int)(task_b_main-addr_code32);
-    task_b->tss.es = 0;
-    task_b->tss.cs = 1*8;
-    task_b->tss.ss = 4*8;
-    task_b->tss.ds = 3*8;
-    task_b->tss.fs = 0;
-    task_b->tss.gs = 2*8;
+        task_b[i] = task_alloc();
+        task_b[i]->tss.ldtr    = 0;
+        task_b[i]->tss.iomap   = 0x40000000;
 
-    task_run(task_b);
+        task_b[i]->tss.eip = (int)(task_b_main-addr_code32);
+        task_b[i]->tss.es = 0;
+        task_b[i]->tss.cs = 1*8;
+        task_b[i]->tss.ss = 4*8;
+        task_b[i]->tss.ds = 3*8;
+        task_b[i]->tss.fs = 0;
+        task_b[i]->tss.gs = 2*8;
+        task_b[i]->tss.esp -= 8;
+        *((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
+        task_run(task_b[i]);
+    }
+
+    sheet_slide(shtctl, sht_win_b[0], 16, 28);
+    sheet_updown(shtctl, sht_win_b[0], 1);
+
+    sheet_slide(shtctl, sht_win_b[1], 160, 28);
+    sheet_updown(shtctl, sht_win_b[1], 1);
 
     int data = 0;
     int count = 0;
-    int i  = 0; 
+    i  = 0; 
 
     int pos = 0;
     int stop_task_A = 0;
@@ -312,7 +332,7 @@ void CMain(void) {
     } 
 }
 
-void task_b_main(void) {
+void task_b_main(struct SHEET *sht_win_b) {
    showString(shtctl, sht_back, 0, 160, COL8_FFFFFF, "enter task b");
 
     struct FIFO8 timerinfo_b;
@@ -327,9 +347,10 @@ void task_b_main(void) {
    
     timer_settime(timer_b, 100);
 
-
-    int pos = 0;
+    int count   = 0;
+    int pos     = 0;
     for(;;) {
+        count++;
        io_cli();
         if (fifo8_status(&timerinfo_b) == 0) {
             io_sti();
@@ -342,6 +363,11 @@ void task_b_main(void) {
                // TODO 这段代码可能不需要等待验证
                timer_settime(timer_b, 100);
                pos += 8;
+               boxfill8(sht_win_b->buf, 144, COL8_C6C6C6, 24, 28, 104, 44);
+               sheet_refresh(shtctl, sht_win_b, 24, 28, 104, 44);
+
+               char *p = intToHexStr(count);
+               showString(shtctl, sht_win_b, 24, 28, COL8_FFFFFF, p);
            }
            
         }
@@ -734,7 +760,7 @@ struct SHEET*  message_box(struct SHTCTL *shtctl,  char *title) {
     make_window8(shtctl, sht_win, title);
     make_textbox8(sht_win, 8, 28, 144, 16, COL8_FFFFFF);    
     
-    sheet_slide(shtctl, sht_win, 160, 72);
+    sheet_slide(shtctl, sht_win, 260, 172);
     sheet_updown(shtctl, sht_win, 2);
 
     return sht_win;
