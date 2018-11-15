@@ -241,7 +241,7 @@ void CMain(void) {
         task_b[i]->tss.gs = 2*8;
         task_b[i]->tss.esp -= 8;
         *((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
-        task_run(task_b[i]);
+        task_run(task_b[i], (i+1)*5);
     }
 
     sheet_slide(shtctl, sht_win_b[0], 16, 28);

@@ -18,6 +18,8 @@ struct TASK {
     // sel 表示对应的段描述符小标
     // flags表示当前进程的运行状态空闲还是占用
     int sel, flags; 
+    // 优先级
+    int priority;
     struct TSS32 tss;
 };
 

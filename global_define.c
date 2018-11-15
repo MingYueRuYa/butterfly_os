@@ -34,7 +34,7 @@ int fifo8_put(struct FIFO8 *fifo, unsigned char data)
     if (fifo->task != 0) {
         // 如果不在运行状态
         if (fifo->task->flags != 2) {
-            task_run(fifo->task);
+            task_run(fifo->task, 0);
         }
     }
 
