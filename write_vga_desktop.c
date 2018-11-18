@@ -130,8 +130,12 @@ static struct SHEET *sht_back, *sht_mouse;
 
 void task_b_main(struct SHEET *sht_win_b);
 
-void launch_console();
+struct SHEET *launch_console();
 void console_task(struct SHEET *sheet);
+void make_wtitle8(struct SHTCTL *shtctl, 
+                 struct SHEET *sht, 
+                 char *title, 
+                 char act);
 
 void CMain(void) {
 
@@ -210,7 +214,7 @@ void CMain(void) {
     keyinfo.task = task_a;
     task_run(task_a, 0, 0);
     
-    launch_console();
+    struct SHEET *sht_cons =  launch_console();
 
     int data = 0;
     int count = 0;
@@ -218,6 +222,7 @@ void CMain(void) {
 
     int pos = 0;
     int stop_task_A = 0;
+    int key_to  = 0;
 
     for(;;) {
 
@@ -243,6 +248,18 @@ void CMain(void) {
                   count = 0;
                }
 
+           } else if (data == 0x0f) { // tab键切换
+                if (key_to == 0) {
+                    key_to = 1;
+                    make_wtitle8(shtctl, shtMsgBox, "task a", 0);
+                    make_wtitle8(shtctl, sht_cons, "console", 1);
+                } else {
+                    key_to = 0;
+                    make_wtitle8(shtctl, shtMsgBox, "task a", 1);
+                    make_wtitle8(shtctl, sht_cons, "console", 0);
+                }
+              sheet_refresh(shtctl, shtMsgBox, 0, 0, shtMsgBox->bxsize, 21);
+              sheet_refresh(shtctl, sht_cons, 0, 0, sht_cons->bxsize, 21);
            } else if (keytable[data] != 0 && cursor_x < 144) {
                boxfill8(shtMsgBox->buf, shtMsgBox->bxsize, COL8_FFFFFF,cursor_x,
               28, cursor_x + 7, 43);
@@ -293,7 +310,7 @@ void CMain(void) {
     } 
 }
 
-void launch_console()
+struct SHEET *launch_console()
 {
     struct SHEET *sht_cons  = sheet_alloc(shtctl);
     unsigned char *buf_cons = (unsigned char *)memman_alloc_4k(memman, 
@@ -320,6 +337,7 @@ void launch_console()
 
     sheet_slide(shtctl, sht_cons, 32, 4);
     sheet_updown(shtctl, sht_cons, 1);
+    return sht_cons;
 }
 
 void console_task(struct SHEET *sheet)
@@ -854,6 +872,59 @@ void make_window8(struct SHTCTL *shtctl, struct SHEET *sht,  char *title) {
     return;
 }
 
+void make_wtitle8(struct SHTCTL *shtctl, 
+                 struct SHEET *sht, 
+                 char *title, 
+                 char act)
+{
+    static char closebtn[14][16] = {
+                "OOOOOOOOOOOOOOO@",
+                "OQQQQQQQQQQQQQ$@",
+                "OQQQQQQQQQQQQQ$@",
+                "OQQQ@@QQQQ@@QQ$@",
+                "OQQQQ@@QQ@@QQQ$@",
+                "OQQQQQ@@@@QQQQ$@",
+                "OQQQQQQ@@QQQQQ$@",
+                "OQQQQQ@@@@QQQQ$@",
+                "OQQQQ@@QQ@@QQQ$@",
+                "OQQQ@@QQQQ@@QQ$@",
+                "OQQQQQQQQQQQQQ$@",
+                "OQQQQQQQQQQQQQ$@",
+                "O$$$$$$$$$$$$$$@",
+                "@@@@@@@@@@@@@@@@"
+        };
+    
+    int x, y;
+    char c, tc, tbc;
+    if (act != 0) {
+        tc = COL8_FFFFFF;
+        tbc = COL8_000084;
+    } else {
+        tc = COL8_C6C6C6;
+        tbc = COL8_848484;
+    }
+
+    boxfill8(sht->buf, sht->bxsize, tbc, 3, 3, sht->bxsize - 4, 20);
+    showString(shtctl, sht, 24, 4, tc, title);
+    
+    for (y = 0; y < 14; ++y) {
+        for (x = 0; x < 16; x++) {
+            c = closebtn[y][x];
+            if (c == '@') {
+                c = COL8_000000;
+            } else if (c == '$') {
+                c = COL8_848484;
+            } else if (c == 'Q') {
+                c = COL8_C6C6C6;
+            } else {
+                c = COL8_FFFFFF;
+            }
+
+            sht->buf[(5+y) * sht->bxsize + (sht->bxsize - 21 + x)] = c;
+        }
+    }
+}
+
 void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c) {
     int x1 = x0 + sx, y1 = y0 + sy;
     boxfill8(sht->buf, sht->bxsize, COL8_848484, x0 - 2, y0 - 3, x1 + 1, y0 - 3);
@@ -866,6 +937,4 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c) {
     boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
     boxfill8(sht->buf, sht->bxsize, c, x0 - 1, y0 - 1, x1 + 0, y1 + 0); 
 }
-
-
 
