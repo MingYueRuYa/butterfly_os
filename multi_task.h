@@ -20,19 +20,31 @@ struct TASK {
     int sel, flags; 
     // 优先级
     int priority;
+    int level;
     struct TSS32 tss;
 };
 
 #define MAX_TASKS       5
-#define TASK_GDT0       7
-#define SIZE_OF_TASK    112
-#define AR_TSS32		0x0089
-#define SIZE_OF_TASKCTL (4+4+4*MAX_TASKS+SIZE_OF_TASK*MAX_TASKS)
+#define MAX_TASKS_LV    3
+#define MAX_TASKSLEVELS 3
 
-struct TASKCTL {
+#define TASK_GDT0       7
+#define SIZE_OF_TASK    120
+#define AR_TSS32		0x0089
+#define SIZE_OF_TASKLEVEL  (8+ 4*MAX_TASKS_LV)
+#define SIZE_OF_TASKCTL  (4 + 4 + SIZE_OF_TASKLEVEL * MAX_TASKSLEVELS + SIZE_OF_TASK*MAX_TASKS)
+
+struct TASKLEVEL {
     int running;
     int now;
-    struct TASK *tasks[MAX_TASKS];
+    struct TASK *tasks[MAX_TASKS_LV];
+};
+
+struct TASKCTL {
+    int now_lv;
+    int lv_change;
+    // struct TASK *tasks[MAX_TASKS];
+    struct TASKLEVEL level[MAX_TASKSLEVELS];
     struct TASK task0[MAX_TASKS];
 };
 
@@ -42,6 +54,7 @@ struct TASK *task_init(struct MEMMAN *memman);
 void mt_taskswitch();
 struct TIMER *GetStaticTimer();
 struct TASK *task_alloc(void);
-void task_sleep(struct TASK *task);
-
+int task_sleep(struct TASK *task);
+struct TASK *task_now(void);
+void task_remove(struct TASK *task);
 #endif // multi_task_h

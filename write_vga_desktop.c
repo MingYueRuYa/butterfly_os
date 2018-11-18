@@ -130,9 +130,8 @@ static struct SHEET *sht_back, *sht_mouse;
 
 void task_b_main(struct SHEET *sht_win_b);
 
-
-static int task_b = 0;
-static struct TIMER g_timer_b;
+void launch_console();
+void console_task(struct SHEET *sheet);
 
 void CMain(void) {
 
@@ -149,7 +148,6 @@ void CMain(void) {
 
     init_pit();
 
-
     fifo8_init(&timerinfo, 8, timerbuf, 0);
     fifo8_init(&keyinfo, 32, keybuf, 0);
     fifo8_init(&mouseinfo, 128, mousebuf, 0);
@@ -158,11 +156,9 @@ void CMain(void) {
     timer_init(timer, &timerinfo, 10);
     timer_settime(timer, 100);
 
-
     timer2 = timer_alloc();
     timer_init(timer2, &timerinfo, 2);
     timer_settime(timer2, 300);
-
 
     timer3 = timer_alloc();
     timer_init(timer3, &timerinfo, 1);
@@ -170,7 +166,6 @@ void CMain(void) {
 
     init_palette();
     init_keyboard();
-       
 
     int memCnt = get_memory_block_count();
  
@@ -187,14 +182,11 @@ void CMain(void) {
     sheet_setbuf(sht_back, buf_back, xsize, ysize, COLOR_INVISIBLE);
     sheet_setbuf(sht_mouse, buf_mouse, 16, 16, COLOR_INVISIBLE);
 
-
     init_screen8(buf_back, xsize, ysize);    
-
 
     init_mouse_cursor(buf_mouse, COLOR_INVISIBLE);
     sheet_slide(shtctl, sht_back, 0, 0);
 
-    
     mx = (xsize - 16) / 2;
     my = (ysize - 28 - 16) / 2;
     sheet_slide(shtctl, sht_mouse, mx, my);
@@ -206,53 +198,23 @@ void CMain(void) {
   
     sheet_updown(shtctl, sht_mouse, 100);
 
-
     io_sti();
     enable_mouse(&mdec);
 
     int addr_code32 = get_code32_addr();
+    struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
     static struct TASK *task_a;
 
     task_a = task_init(memman);
-
     // 将task_a 附着到keyinfo事件上
     keyinfo.task = task_a;
-    char taskTitle[6] = {'t', 'a', 's', 'k', 0, 0};
-
-    int i = 0;
-    for (; i < 2; ++i) {
-        sht_win_b[i] = sheet_alloc(shtctl);
-        buf_win_b = (unsigned char *)memman_alloc_4k(memman, 144*52);
-        char c = 'b' + i;
-        taskTitle[4] = c;
-        sheet_setbuf(sht_win_b[i], buf_win_b, 144, 52, -1);
-        make_window8(shtctl, sht_win_b[i], taskTitle);
-
-        task_b[i] = task_alloc();
-        task_b[i]->tss.ldtr    = 0;
-        task_b[i]->tss.iomap   = 0x40000000;
-
-        task_b[i]->tss.eip = (int)(task_b_main-addr_code32);
-        task_b[i]->tss.es = 0;
-        task_b[i]->tss.cs = 1*8;
-        task_b[i]->tss.ss = 4*8;
-        task_b[i]->tss.ds = 3*8;
-        task_b[i]->tss.fs = 0;
-        task_b[i]->tss.gs = 2*8;
-        task_b[i]->tss.esp -= 8;
-        *((int *)(task_b[i]->tss.esp + 4)) = (int)sht_win_b[i];
-        task_run(task_b[i], (i+1)*5);
-    }
-
-    sheet_slide(shtctl, sht_win_b[0], 16, 28);
-    sheet_updown(shtctl, sht_win_b[0], 1);
-
-    sheet_slide(shtctl, sht_win_b[1], 160, 28);
-    sheet_updown(shtctl, sht_win_b[1], 1);
+    task_run(task_a, 0, 0);
+    
+    launch_console();
 
     int data = 0;
     int count = 0;
-    i  = 0; 
+    int i  = 0; 
 
     int pos = 0;
     int stop_task_A = 0;
@@ -309,7 +271,6 @@ void CMain(void) {
                 if (pos > 40 && stop_task_A == 0) {
                     io_cli();
                     task_sleep(task_a);
-                    io_sti();
                 }
            } else if (i == 2) {
                showString(shtctl, sht_back, 0, 32, COL8_FFFFFF, "3[sec]");
@@ -331,6 +292,75 @@ void CMain(void) {
        }
     } 
 }
+
+void launch_console()
+{
+    struct SHEET *sht_cons  = sheet_alloc(shtctl);
+    unsigned char *buf_cons = (unsigned char *)memman_alloc_4k(memman, 
+                                                                256*156);
+    sheet_setbuf(sht_cons, buf_cons, 256, 165, COLOR_INVISIBLE);
+    make_window8(shtctl, sht_cons, "console");
+    make_textbox8(sht_cons, 8, 28, 240, 128, COL8_000000);
+
+    struct TASK *task_console = task_alloc();
+    int addr_code32 = get_code32_addr();
+    task_console->tss.ldtr  = 0;
+    task_console->tss.iomap = 0x40000000;
+    task_console->tss.eip   = (int)(console_task - addr_code32);
+
+    task_console->tss.es = 0;
+    task_console->tss.cs = 1*8;
+    task_console->tss.ss = 4*8;
+    task_console->tss.ds = 3*8;
+    task_console->tss.fs = 0;
+    task_console->tss.gs = 2*8;
+    task_console->tss.esp -= 8;
+    *((int *)(task_console->tss.esp+4)) = (int)sht_cons;
+    task_run(task_console, 1, 5);
+
+    sheet_slide(shtctl, sht_cons, 32, 4);
+    sheet_updown(shtctl, sht_cons, 1);
+}
+
+void console_task(struct SHEET *sheet)
+{
+    struct FIFO8 fifo;
+    struct TIMER *timer;
+    struct TASK *task = task_now();
+
+    int i, fifobuf[128], cursor_x = 8, cursor_c = COL8_000000;
+    fifo8_init(&fifo, 128, fifobuf, task);
+    timer = timer_alloc();
+    timer_init(timer, &fifo, 1);
+    timer_settime(timer, 50);
+
+    for (;;) {
+        io_cli();
+
+        if (fifo8_status(&fifo) == 0) {
+            io_sti();
+        } else {
+            i = fifo8_get(&fifo);
+            io_sti();
+
+            if (i <= 1) {
+                if (i != 0) {
+                    timer_init(timer, &fifo, 0);
+                    cursor_c = COL8_FFFFFF;
+                } else {
+                    timer_init(timer, &fifo, 1);
+                    cursor_c = COL8_000000;
+                }
+
+                timer_settime(timer, 50);
+                boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x,
+                28, cursor_x + 7, 43);
+                sheet_refresh(shtctl, sheet, cursor_x, 28, cursor_x+8, 44);
+            }
+        } // if
+    } // for
+}
+
 
 void task_b_main(struct SHEET *sht_win_b) {
    showString(shtctl, sht_back, 0, 160, COL8_FFFFFF, "enter task b");
