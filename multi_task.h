@@ -1,6 +1,8 @@
 #ifndef multi_task_h
 #define multi_task_h
 
+#include "mem_util.h"
+
 struct TSS32 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
 	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
@@ -21,6 +23,7 @@ struct TASK {
     // 优先级
     int priority;
     int level;
+    struct FIFO8 *fifo;
     struct TSS32 tss;
 };
 
@@ -56,5 +59,14 @@ struct TIMER *GetStaticTimer();
 struct TASK *task_alloc(void);
 int task_sleep(struct TASK *task);
 struct TASK *task_now(void);
+
+
+
 void task_remove(struct TASK *task);
+
+#define PROC_RESUME	0x57
+#define PROC_PAUSE	0x58
+
+void send_message(struct TASK *sender, struct TASK *receiver, int msg);
+
 #endif // multi_task_h

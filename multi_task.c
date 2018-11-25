@@ -1,5 +1,5 @@
-#include "mem_util.h"
 #include "multi_task.h"
+#include "global_define.h"
 #include "timer.h"
 
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, 
@@ -20,7 +20,6 @@ void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd,
 	return;
 }
 
-static int mt_tr;
 static struct TIMER *task_timer;
 static struct TASKCTL *taskctl;
 
@@ -126,7 +125,7 @@ void task_switch(void)
     struct TASK *new_task, *now_task = tl->tasks[tl->now];
     tl->now++;
 
-    if (tl->now = tl->running) {
+    if (tl->now == tl->running) {
         tl->now = 0;
     }
 
@@ -172,7 +171,7 @@ int task_sleep(struct TASK *task)
         }
     }
 
-    return;
+    return rtask;
 }
 
 struct TASK *task_now(void)
@@ -223,7 +222,6 @@ void task_remove(struct TASK *task)
 void task_switchsub(void)
 {
     int i = 0;
-    taskctl->lv_change = 0;
 
     for (i = 0; i < MAX_TASKSLEVELS; ++i) {
         if (taskctl->level[i].running > 0) {
@@ -235,6 +233,11 @@ void task_switchsub(void)
     taskctl->lv_change = 0;
 }
 
+void send_message(struct TASK *sender, struct TASK *receiver, int msg)
+{
+	fifo8_put(&receiver->fifo, msg);
+	task_sleep(sender);
+}
 
 
 

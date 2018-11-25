@@ -1,3 +1,4 @@
+#include "multi_task.h"
 #include "global_define.h"
 
 void fifo8_init(struct FIFO8 *fifo, int size, 
@@ -34,7 +35,7 @@ int fifo8_put(struct FIFO8 *fifo, unsigned char data)
     if (fifo->task != 0) {
         // 如果不在运行状态
         if (fifo->task->flags != 2) {
-            task_run(fifo->task, 0);
+            task_run(fifo->task, -1, 0);
         }
     }
 

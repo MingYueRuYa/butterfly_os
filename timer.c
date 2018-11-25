@@ -8,7 +8,7 @@
 #define  TIMER_FLAGS_USING  2
 
 static struct TIMERCTL timerctl;
-
+extern struct TIMER *task_timer;
 
 void  init_pit(void) {
     io_out8(PIT_CTRL, 0x34);
@@ -57,15 +57,16 @@ void intHandlerForTimer(char *esp) {
     io_out8(PIC0_OCW2, 0x20);
 
     timerctl.count++;
-    char ts = 0;
     int i;
+    char ts = 0;
+
     for (i = 0; i < MAX_TIMER; i++) {
         if (timerctl.timer[i].flags == TIMER_FLAGS_USING) {
             timerctl.timer[i].timeout--;
             if (timerctl.timer[i].timeout == 0) {
                 timerctl.timer[i].flags = TIMER_FLAGS_ALLOC;
                 fifo8_put(timerctl.timer[i].fifo, timerctl.timer[i].data);
-                if (&timerctl.timer[i] == GetStaticTimer()) {
+                if (&timerctl.timer[i] == task_timer) {
                     ts = 1;
                 }
             }

@@ -1,13 +1,11 @@
 #ifndef global_define_h
 #define global_define_h
 
-#include "multi_task.h"
-
-struct FIFO8 {
+typedef struct FIFO8 {
     unsigned char *buf;
     int p, q, size, free, flags;
     struct TASK *task;
-};
+} FIFO8;
 
 void fifo8_init(struct FIFO8 *fifo, int size, 
                 unsigned char *buf, struct TASK *task);
