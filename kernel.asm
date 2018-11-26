@@ -14,7 +14,7 @@ LABEL_DESC_CODE32:  Descriptor        0,      0fffffh,       DA_C | DA_32 | DA_L
 LABEL_DESC_VIDEO:   Descriptor        0B8000h,         0fffffh,            DA_DRW
 LABEL_DESC_VRAM:    Descriptor        0,         0fffffh,            DA_DRW | DA_LIMIT_4K
 
-LABEL_DESC_STACK:   Descriptor        0,             LenOfStackSection,        DA_DRW | DA_32
+LABEL_DESC_STACK:   Descriptor        0,             0fffffh,        DA_DRW | DA_32
 
 LABEL_DESC_FONT:    Descriptor        0,         0fffffh,   DA_DRW | DA_LIMIT_4K  
 
@@ -26,6 +26,11 @@ LABEL_DESC_8:       Descriptor        0,      0,       0
 
 LABEL_DESC_9:       Descriptor        0,      0,       0
 
+LABEL_DESC_10:      Descriptor        0,      0,       0
+
+%rep  5
+Descriptor 0, 0, 0
+%endrep
 
 GdtLen     equ    $ - LABEL_GDT
 GdtPtr     dw     GdtLen - 1
@@ -70,6 +75,10 @@ LABEL_BEGIN:
      mov   ss, ax
      mov   sp, 0100h
 
+keystatus:
+     ;mov   ah, 0x02
+     ;int   0x16
+     ;mov   [LEDS], al
      ;calculate memory 
 ComputeMemory:
      mov   ebx, 0
@@ -203,7 +212,7 @@ io_delay:
      ;initialize stack for c code
      mov  ax, SelectorStack
      mov  ss, ax
-     mov  esp, TopOfStack1
+     mov  esp, 2048
 
      mov  ax, SelectorVram
      mov  ds,  ax
@@ -362,6 +371,10 @@ timerHandler equ _timerHandler - $$
         mov  eax, [dwMCRNumber]
         ret
 
+    get_leds:
+        mov eax, [LEDS]
+        ret
+
     get_adr_buffer:
         mov  eax, MemChkBuf
         ret
@@ -379,21 +392,7 @@ timerHandler equ _timerHandler - $$
         LTR  [esp + 4]
         ret
 
-    taskswitch8:
-        jmp  8*8:0
-        ret
-
-    taskswitch7:
-        jmp  7*8:0
-        ret
-  
-    taskswitch6:
-        jmp  6*8:0
-        ret
-
-    taskswitch9:
-        jmp 9*8:0
-        ret
+    
 
     farjmp:
         jmp FAR [esp + 4]
@@ -408,7 +407,7 @@ ALIGN 32
 
 MemChkBuf: times 256 db 0
 dwMCRNumber:   dd 0
-
+LEDS : db 0
 
 
 LABEL_SYSTEM_FONT:

@@ -1,7 +1,3 @@
-#ifndef multi_task_h
-#define multi_task_h
-
-#include "mem_util.h"
 
 struct TSS32 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
@@ -16,26 +12,27 @@ struct SEGMENT_DESCRIPTOR {
 	char limit_high, base_high;
 };
 
+void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
+
+#define AR_TSS32		0x0089
+
+
+
+
 struct TASK {
-    // sel 表示对应的段描述符小标
-    // flags表示当前进程的运行状态空闲还是占用
-    int sel, flags; 
-    // 优先级
+    int sel, flags;
     int priority;
     int level;
     struct FIFO8 *fifo;
     struct TSS32 tss;
 };
 
-#define MAX_TASKS       5
-#define MAX_TASKS_LV    3
-#define MAX_TASKSLEVELS 3
+#define  MAX_TASKS  5
+#define  MAX_TASKS_LV   3
+#define  MAX_TASKLEVELS 3
 
-#define TASK_GDT0       7
-#define SIZE_OF_TASK    120
-#define AR_TSS32		0x0089
-#define SIZE_OF_TASKLEVEL  (8+ 4*MAX_TASKS_LV)
-#define SIZE_OF_TASKCTL  (4 + 4 + SIZE_OF_TASKLEVEL * MAX_TASKSLEVELS + SIZE_OF_TASK*MAX_TASKS)
+#define  TASK_GDT0  7
+#define  SIZE_OF_TASK  120
 
 struct TASKLEVEL {
     int running;
@@ -43,30 +40,28 @@ struct TASKLEVEL {
     struct TASK *tasks[MAX_TASKS_LV];
 };
 
+#define SIZE_OF_TASKLEVEL  (8+ 4*MAX_TASKS_LV)
+
 struct TASKCTL {
-    int now_lv;
-    int lv_change;
-    // struct TASK *tasks[MAX_TASKS];
-    struct TASKLEVEL level[MAX_TASKSLEVELS];
-    struct TASK task0[MAX_TASKS];
+    int  now_lv;
+    int  lv_change;
+    struct TASKLEVEL  level[MAX_TASKLEVELS];
+    struct TASK tasks0[MAX_TASKS];
 };
 
-void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, 
-                    unsigned int limit, int base, int ar);
 struct TASK *task_init(struct MEMMAN *memman);
-void mt_taskswitch();
-struct TIMER *GetStaticTimer();
+
+#define SIZE_OF_TASKCTL  (4 + 4 + SIZE_OF_TASKLEVEL*MAX_TASKLEVELS + SIZE_OF_TASK*MAX_TASKS)
+
 struct TASK *task_alloc(void);
-int task_sleep(struct TASK *task);
+
 struct TASK *task_now(void);
 
+int task_sleep(struct TASK *task);
 
+struct TASKCTL *get_taskctl();
 
-void task_remove(struct TASK *task);
-
-#define PROC_RESUME	0x57
-#define PROC_PAUSE	0x58
+#define  PROC_RESUME   0x57
+#define  PROC_PAUSE    0x58
 
 void send_message(struct TASK *sender, struct TASK *receiver, int msg);
-
-#endif // multi_task_h
