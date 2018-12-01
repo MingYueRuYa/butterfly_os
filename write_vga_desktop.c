@@ -161,6 +161,8 @@ char transferScanCode(int data);
 
 int  isSpecialKey(int data);
 
+int cons_newline(int cursor_y, struct SHEET *sheet);
+
 void CMain(void) {
 
     initBootInfo(&bootInfo);
@@ -439,6 +441,7 @@ struct SHEET*  launch_console() {
     task_console->tss.gs = 2*8;
     task_console->tss.esp -= 8;
     *((int*)(task_console->tss.esp + 4)) = (int)sht_cons;
+    *((int*)(task_console->tss.esp + 8)) = memman_total(memman);
     task_run(task_console, 1, 5);
 
     sheet_slide(shtctl,sht_cons, 32, 4);
@@ -464,6 +467,7 @@ void console_task(struct SHEET *sheet) {
 
     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
     int pos = 0;
+    char cmdline[30];
     for(;;) {
        
         io_cli();
@@ -496,13 +500,19 @@ void console_task(struct SHEET *sheet) {
                 task_run(task_main, -1, 0);
             }
             else if (i == KEY_RETURN) {
-
-                if (cursor_y < 28 + 112) {
-                    set_cursor(shtctl, sheet, cursor_x, cursor_y, COL8_000000);
-                    cursor_y += 16;
-                    cursor_x = 16;
-                    showString(shtctl, sheet, 8, cursor_y, COL8_FFFFFF, ">");
+                set_cursor(shtctl, sheet, cursor_x, cursor_y, COL8_000000);
+                cmdline[cursor_x/8 - 2] = 0;
+                cursor_y = cons_newline(cursor_y, sheet);
+                if (cmdline[0] == 'm' && cmdline[1] == 'e' &&
+                    cmdline[2] == 'm' && cmdline[3] == 0) {
+                    char *s = intToHexStr(memtotal / (1024));
+                    showString(shtctl, sheet, 16, cursor_y, 
+                                COL8_FFFFFF, "free");
+                    showString(shtctl, sheet, 52, cursor_y, COL8_FFFFFF, s);
+                    showString(shtctl, sheet, 126, cursor_y, COL8_FFFFFF, "KB");
+                    cursor_y = cons_newline(cursor_y, sheet);
                 }
+                cursor_x = 16;
             }
             else if (i == 0x0e && cursor_x > 8) {
                     set_cursor(shtctl, sheet, cursor_x, cursor_y, COL8_000000);
@@ -1047,5 +1057,29 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c) {
     boxfill8(sht->buf, sht->bxsize, c, x0 - 1, y0 - 1, x1 + 0, y1 + 0); 
 }
 
+int cons_newline(int cursor_y, struct SHEET *sheet)
+{
+    int x, y;
+    
+    if (cursor_y < 28 + 112) {
+        cursor_y += 16;
+    } else {
+        for (y = 28; y < 28+112; y++) {
+            for (x = 8; x < 8 + 240; x++) {
+                sheet->buf[x + y * sheet->bxsize] = 
+                    sheet->buf[x+(y+16)*sheet->bxsize];
+            }
 
+            for (y = 28 + 112; y < 28 + 128; y++) {
+                for (x = 8; x < 8 + 240; x++) {
+                    sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+                }
+            }
+
+            sheet_refresh(shtctl, sheet, 8, 28, 8 + 240, 28 + 128);
+        } // for
+    } // if
+    showString(shtctl, sheet, 8, cursor_y, COL8_FFFFFF, ">");
+    return cursor_y;
+}
 
