@@ -1,28 +1,97 @@
 org 0x7c00;
 
-LOAD_ADDR EQU 0x9000
+LoadAddr EQU 08000h
+BufferAddr EQU 7E0h
+
+BaseOfStack equ 07c00h
 
 entry:
     mov ax, 0
     mov ss, ax
     mov ds, ax
+
+    mov ax, BufferAddr
     mov es, ax
+
+    mov ax, 0
+    mov ss, ax
+    mov sp, BaseOfStack
+    mov di, ax
     mov si, ax
 
+    mov bx, 0       ; ES:BX data buffer
+    mov ch, 1       ; synclider
+    mov dh, 0       ; head
+    mov cl, 0       ; sector
+
+;write data to address 07E00
+
 readFloppy:
-    mov ch, 1   ; 柱面号
-    mov dh, 0   ; 磁头号
-    mov cl, 2   ; 存储扇区号
+    cmp byte [load_count], 0
+    je beginLoad
 
-    mov bx, LOAD_ADDR   ; ES:BX 数据存储缓冲区
-    mov ah, 0x02    ; 表示读盘操作
-    mov al, 20       ; 表示读取一个扇区
-    mov dl, 0       ; 驱动器号
-    INT 0x13        ; 调用BIOS中断实现磁盘读取功能
+    mov bx, 0
+    inc cl
+    mov ah, 0x02
 
+    mov al, 1
+    mov dl, 0
+
+    int 0x13
     JC fin
 
-    jmp LOAD_ADDR
+;read 0x7e00 data to 0x8000h address
+copySector:
+    push si
+    push di
+    push cx
+
+    mov cx, 200h
+    mov di, 0
+    mov si, 0
+    mov ax, word [load_section]
+    mov ds, ax
+
+copy:
+    cmp cx, 0    
+    je copyend
+
+    mov al, byte[es:si]
+    mov byte [ds:di], al
+    
+    inc di
+    inc si
+    dec cx
+    jmp copy
+
+copyend:
+    pop cx
+    pop di
+    pop si
+
+    mov bx, ds
+    add bx, 020h
+    mov ax, 0
+    mov ds, ax
+    mov word [load_section], bx
+    mov bx, 0
+
+    cmp cl, 18
+    jb readFloppy
+
+    inc ch
+    mov cl, 0
+    dec byte [load_count]
+    jmp readFloppy
+
+beginLoad:
+    mov ax, 0
+    mov ds, ax
+
+    jmp LoadAddr
+
+load_count db 10
+load_section dw 0800h
 
 fin:
     HLT
