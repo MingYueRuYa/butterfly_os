@@ -150,7 +150,7 @@ void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cursor_x, int c
 void task_b_main(struct SHEET *sht_win_b);
 
 struct SHEET *launch_console();
-void console_task(struct SHEET *sheet); 
+void console_task(struct SHEET *sheet, int memtotal); 
 
 void make_wtitle8(struct SHTCTL *shtctl, struct SHEET *sht,char *title, char act);
 
@@ -293,7 +293,6 @@ void CMain(void) {
                    key_to = 0;
                    make_wtitle8(shtctl, shtMsgBox,  "task_a",1);
                    make_wtitle8(shtctl, sht_cons, "console", 0);
-                   fifo8_put(&task_cons->fifo, 0x58);
                    msg = PROC_PAUSE;
                }              
 
@@ -453,7 +452,7 @@ struct SHEET*  launch_console() {
     return sht_cons;
 }
 
-void console_task(struct SHEET *sheet) {
+void console_task(struct SHEET *sheet, int memtotal) {
 
     struct TIMER *timer;
     struct TASK *task = task_now();
@@ -507,9 +506,9 @@ void console_task(struct SHEET *sheet) {
                     cmdline[2] == 'm' && cmdline[3] == 0) {
                     char *s = intToHexStr(memtotal / (1024));
                     showString(shtctl, sheet, 16, cursor_y, 
-                                COL8_FFFFFF, "free");
+                                COL8_FFFFFF, "free ");
                     showString(shtctl, sheet, 52, cursor_y, COL8_FFFFFF, s);
-                    showString(shtctl, sheet, 126, cursor_y, COL8_FFFFFF, "KB");
+                    showString(shtctl, sheet, 126, cursor_y, COL8_FFFFFF, " KB");
                     cursor_y = cons_newline(cursor_y, sheet);
                 }
                 cursor_x = 16;
@@ -524,6 +523,7 @@ void console_task(struct SHEET *sheet) {
                        if (cursor_x < 240 && c!=0 ) {
                            set_cursor(shtctl, sheet, cursor_x, cursor_y,COL8_000000);
                            char s[2] = {c, 0};
+                           cmdline[cursor_x/8 - 2] = c;
                            showString(shtctl, sheet, cursor_x, cursor_y, COL8_FFFFFF, s);
                            cursor_x += 8;
                        }
