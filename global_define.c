@@ -63,3 +63,24 @@ int fifo8_status(struct FIFO8 *fifo)
     return fifo->size - fifo->free;
 }
 
+int strcmp(char *src, char *dest)
+{
+    if (0 == src || 0 == dest) { return 0; }
+
+    int i = 0;
+    while (src[i] != 0 && dest[i] != 0) {
+        if (src[i] != dest[i]) { return 0; }
+        i++;
+    }
+
+    if (src[i] == 0 && dest[i] != 0) {
+        return 0;
+    }
+
+    if (src[i] != 0 && dest[i] != 0) {
+        return 0;
+    }
+
+    return 1;
+}
+

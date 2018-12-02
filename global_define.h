@@ -16,4 +16,6 @@ int fifo8_get(struct FIFO8 *fifo);
 
 int fifo8_status(struct FIFO8 *fifo);
 
+int strcmp(char *src, char *dest);
+
 #endif // global_define_h
