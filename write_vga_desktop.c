@@ -465,6 +465,8 @@ void console_task(struct SHEET *sheet, int memtotal) {
     timer_init(timer, &task->fifo, 1);
     timer_settime(timer, 50);
 
+    struct FILEINFO *fileinfo = (struct FIFLINFO *)(ADR_DISKIMG);
+
     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
     int pos = 0;
     char cmdline[30];
@@ -519,6 +521,36 @@ void console_task(struct SHEET *sheet, int memtotal) {
                     sheet_refresh(shtctl, sheet, 8, 28, 8+240, 28+128);
                     cursor_y = 28;
                     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
+                } else if (strcmp(cmdline, "dir") == 1) {
+                    while (fileinfo->name[0] != 0) {
+                        char s[13]; 
+                        s[12] = 0;
+                        int k = 0;
+                        for (k = 0; k < 8; k++) {
+                            if (fileinfo->name[k] != 0) {
+                                s[k] = fileinfo->name[k];
+                            } else {
+                                break;
+                            } // if
+                        } // for
+
+                        int t = 0;
+                        s[k] = '.';
+                        k++;
+                        for (t = 0; t < 3; t++) {
+                            s[k] = fileinfo->ext[t];
+                            k++;
+                        }
+
+                        showString(shtctl, sheet, 16, cursor_y, COL8_FFFFFF, s);
+                        int offset = 16 + 8*15;
+                        char *p = intToHexStr(fileinfo->size);
+                        showString(shtctl, sheet, offset, 
+                                    cursor_y, COL8_FFFFFF, p);
+                        cursor_y = cons_newline(cursor_y, sheet);
+                        fileinfo++;
+
+                    }
                 }
                 cursor_x = 16;
             }

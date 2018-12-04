@@ -57,7 +57,13 @@ ShowTip "compile boot.asm successful" "compile boot.asm error"
 #nasm boot_read5M.asm -o ./bin/boot.bat
 #ShowTip "compile boot_read5M.asm successful" "compile boot_read5M.asm error"
 
-javac src/OperatingSystem.java src/Floppy.java src/CKernelAsmPrecessor.java  -d ./bin/
+javac \
+    src/OperatingSystem.java \
+    src/Floppy.java \
+    src/CKernelAsmPrecessor.java \
+    src/FileHeader.java \
+    src/DiskFileSystem.java \
+    -d ./bin/
 cd ./bin
 ShowTip "java  OperatingSystem" "java  OperatingSystem"
 java  OperatingSystem

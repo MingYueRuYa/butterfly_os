@@ -18,4 +18,15 @@ int fifo8_status(struct FIFO8 *fifo);
 
 int strcmp(char *src, char *dest);
 
+// #define ADR_DISKIMG 0x10E00
+#define ADR_DISKIMG 0x10800
+
+struct FILEINFO {
+    unsigned char name[8], ext[3], type;
+    char reserve[10];
+    unsigned short time, date, clustno;
+    unsigned int size;
+};
+
+#define FILEINFO_SIZE  32
 #endif // global_define_h

@@ -53,11 +53,35 @@ public class OperatingSystem {
     
     public void makeFllopy()   {
     	writeFileToFloppy("kernel.bat", false, 1, 1);
+
+        // test file system
+        DiskFileSystem fileSys = new DiskFileSystem(floppyDisk, 4, 15);
+        FileHeader header = new FileHeader();
+        header.setFileName("abc");
+        header.setFileExt("exe");
+        byte[] date = new byte[2];
+        date[0] = 0x11;
+        date[1] = 0x12;
+        header.setFileTime(date);
+        header.setFileDate(date);
+        header.setFileSize(256);
+        fileSys.addHeader(header);
+
+        header = new FileHeader();
+        header.setFileName("efg");
+        header.setFileExt("sys");
+        header.setFileSize(128);
+        fileSys.addHeader(header);
+
+        header = new FileHeader();
+        header.setFileName("linux");
+        header.setFileExt("sys");
+        header.setFileSize(64);
+        fileSys.addHeader(header);
+        fileSys.flashFileHeaders();
     	
     	floppyDisk.makeFloppy("system.img");
     }
-    
-   
 
     public static void main(String[] args) {
     	CKernelAsmPrecessor kernelPrecessor = new CKernelAsmPrecessor();
