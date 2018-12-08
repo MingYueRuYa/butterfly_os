@@ -163,6 +163,8 @@ int  isSpecialKey(int data);
 
 int cons_newline(int cursor_y, struct SHEET *sheet);
 
+void file_loadfile(char *fileName, struct Buffer *pBuffer);
+
 void CMain(void) {
 
     initBootInfo(&bootInfo);
@@ -555,8 +557,103 @@ void console_task(struct SHEET *sheet, int memtotal) {
                     }
                 // 恢复原来的位置
                 // fileinfo = (struct FIFLINFO *)(ADR_DISKIMG);
+                } else if (strcmp(cmdline, "hlt") == 1) {
+                    struct Buffer buffer; 
+                    file_loadfile("abc.exe", &buffer);
+                    struct SEGMENT_DESCRIPTOR *gdt = 
+                        (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
+                    set_segmdesc(gdt+19, 0xfffff, buffer.pBuffer, 0x409a);
+                    farjmp(0, 19 * 8);
+                    memman_free_4k(memman, buffer.pBuffer, buffer.length);
+                } else if (cmdline[0] == 't' && cmdline[1] == 'y' &&
+                            cmdline[2] == 'p' && cmdline[3] == 'e') {
+                    char name[13];
+                    name[12] = 0;
+                    int p = 0;
+                    for (x = 5; x < 17; x++) {
+                        if (cmdline[x] != 0) {
+                            name[p] = cmdline[x];
+                            p++;
+                        } else {
+                            break;
+                        }
+                    } // for
+
+                    name[p] = 0;
+
+                    fileinfo = (struct FIFLINFO *)(ADR_DISKIMG);
+                    while (fileinfo->name[0] != 0) {
+                        char s[13];
+                        s[12] = 0;
+                        int k;
+                        for (k = 0; k < 8; k++) {
+                            if (fileinfo->name[k] != 0) {
+                                s[k] = fileinfo->name[k];
+                            } else {
+                                break;
+                            }
+                        } // for
+
+                        int t = 0;
+                        s[k] = '.';
+                        k++;
+                        for (t = 0; t < 3; t++) {
+                            s[k] = fileinfo->ext[t];
+                            k++;
+                        }
+                        
+                        if (strcmp(name, s) == 1) {
+                            char *p = FILE_CONTENT_HEAD_ADDR;
+                            p += fileinfo->clustno * DISK_SECTOR_SIZE;
+                            int sz = fileinfo->size;
+                            char c[2];
+                            int t = 0;
+                            cursor_x = 16;
+                            for (t = 0; t < sz; t++) {
+                                c[0] = p[t];
+                                c[1] = 0;
+                                if (c[0] == 0x09) {
+                                    // handle tab key
+                                    for (;;) {
+                                        showString(shtctl, sheet, cursor_x,
+                                                    cursor_y, COL8_FFFFFF, 
+                                                    "  ");
+                                        cursor_x += 8;
+
+                                        if (cursor_x == 8 + 240) {
+                                            cursor_x = 8;
+                                            cursor_y = cons_newline(cursor_x,
+                                                                    sheet);
+                                        }
+
+                                        if ((cursor_x -8) & 0x1f == 0) {
+                                            break;
+                                        }
+                                    }
+                                } else if (c[0] == 0x0a) {
+                                    // handle return
+                                    cursor_x = 8;
+                                    cursor_y = cons_newline(cursor_y, sheet);
+                                } else if (c[0] == 0x0d) {
+                                    //do nothing
+                                } else {
+                                    showString(shtctl, sheet, cursor_x,
+                                            cursor_y, COL8_FFFFFF, c);
+                                    cursor_x += 8;
+                                    if (cursor_x == 8 + 240) {
+                                        cursor_x = 16;
+                                        cursor_y = cons_newline(cursor_y, 
+                                                                sheet);
+                                    }
+                                }  // if
+                            } // for
+                            break;
+                        } // if
+                        fileinfo++;
+                    } // while
+                    cursor_y = cons_newline(cursor_y, sheet);
+                    cursor_x = 16;
                 }
-                cursor_x = 16;
             }
             else if (i == 0x0e && cursor_x > 8) {
                     set_cursor(shtctl, sheet, cursor_x, cursor_y, COL8_000000);
@@ -1128,3 +1225,44 @@ int cons_newline(int cursor_y, struct SHEET *sheet)
     return cursor_y;
 }
 
+void file_loadfile(char *name, struct Buffer *buffer)
+{
+    struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
+    char *s = memman_alloc(memman, 13);
+    s[12] = 0;
+
+    while (finfo->name[0] == 0) {
+        int k;
+        for (k = 0; k < 8; k++) {
+            if (finfo->name[k] != 0) {
+                s[k] = finfo->name[k];
+            } else {
+                break;
+            }
+        } // for
+
+        int t = 0;
+        s[k] = '.';
+        k++;
+        for (t = 0; t < 3; t++) {
+            s[k] = finfo->ext[t];
+            k++;
+        }
+
+        if (strcmp(name, s) == 1) {
+            buffer->pBuffer = (char *)memman_alloc_4k(memman, finfo->size);
+            buffer->length  = finfo->size;
+            char *p = FILE_CONTENT_HEAD_ADDR;
+            p += finfo->clustno * DISK_SECTOR_SIZE;
+            int sz = finfo->size;
+            int t = 0;
+            for (t = 0; t < sz; t++) {
+                buffer->pBuffer[t] = p[t];
+            }
+            break;
+        }
+        finfo++;
+    } // while
+
+    memman_free(memman, s, 13);
+}

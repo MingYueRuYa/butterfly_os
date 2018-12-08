@@ -55,7 +55,8 @@ public class OperatingSystem {
     	writeFileToFloppy("kernel.bat", false, 1, 1);
 
         // test file system
-        DiskFileSystem fileSys = new DiskFileSystem(floppyDisk, 4, 15);
+        // 此处容易出错，一旦内核大小超过6柱面1扇区后，下面的代码将会产生问题
+        DiskFileSystem fileSys = new DiskFileSystem(floppyDisk, 6, 1);
         FileHeader header = new FileHeader();
         header.setFileName("abc");
         header.setFileExt("exe");
@@ -64,13 +65,20 @@ public class OperatingSystem {
         date[1] = 0x12;
         header.setFileTime(date);
         header.setFileDate(date);
-        header.setFileSize(256);
+        String s = "abc.exe";
+        int []buf = new int[]{0xfa, 0xeb, 0xfe, 0x0a};
+        byte[] bbuf = new byte[9];
+        for (int i = 0; i < buf.length; ++i) {
+            bbuf[i] = (byte)(buf[i] & 0x0ff);
+        }
+        header.setFileContent(bbuf);
         fileSys.addHeader(header);
 
         header = new FileHeader();
         header.setFileName("efg");
         header.setFileExt("sys");
-        header.setFileSize(128);
+        String s1 = "this is content in file efg.sys";
+        header.setFileContent(s1);
         fileSys.addHeader(header);
 
         header = new FileHeader();
@@ -78,6 +86,7 @@ public class OperatingSystem {
         header.setFileExt("sys");
         header.setFileSize(64);
         fileSys.addHeader(header);
+
         fileSys.flashFileHeaders();
     	
     	floppyDisk.makeFloppy("system.img");
