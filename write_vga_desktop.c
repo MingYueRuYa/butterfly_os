@@ -522,7 +522,9 @@ void console_task(struct SHEET *sheet, int memtotal) {
                     cursor_y = 28;
                     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
                 } else if (strcmp(cmdline, "dir") == 1) {
-                    while (fileinfo->name[0] != 0) {
+                    int i = 0 ;
+                    // while (fileinfo->name[0] != 0) {
+                    for (; i < 2; ++i) {
                         char s[13]; 
                         s[12] = 0;
                         int k = 0;
@@ -542,15 +544,17 @@ void console_task(struct SHEET *sheet, int memtotal) {
                             k++;
                         }
 
-                        showString(shtctl, sheet, 16, cursor_y, COL8_FFFFFF, s);
+                        showString(shtctl, sheet, 16, 
+                                    cursor_y, COL8_FFFFFF, s);
                         int offset = 16 + 8*15;
                         char *p = intToHexStr(fileinfo->size);
                         showString(shtctl, sheet, offset, 
                                     cursor_y, COL8_FFFFFF, p);
                         cursor_y = cons_newline(cursor_y, sheet);
                         fileinfo++;
-
                     }
+                // 恢复原来的位置
+                // fileinfo = (struct FIFLINFO *)(ADR_DISKIMG);
                 }
                 cursor_x = 16;
             }

@@ -109,20 +109,15 @@ public class Floppy {
     
     public void makeFloppy(String fileName) {
     	try {
-			DataOutputStream out = new DataOutputStream(new FileOutputStream(fileName));
+			DataOutputStream out = new DataOutputStream(
+                                            new FileOutputStream(fileName));
 			for (int cylinder = 0; cylinder < CYLINDER_COUNT; cylinder++) {
-			  for (int head = 0; head <= MAGNETIC_HEAD.MAGETIC_HEAD_1.ordinal(); head++) {
+			  for (int head = 0; 
+                    head <= MAGNETIC_HEAD.MAGETIC_HEAD_1.ordinal(); 
+                    head++) {
 				  for (int sector = 1; sector <= SECTORS_COUNT; sector++) {
-						byte[] buf = readFloppy(MAGNETIC_HEAD.values()[head], cylinder, sector);
-						/*if (head == 0 && cylinder == 0 && sector == 2) {
-							int k = 0;
-							k = 2;
-							byte[] buffer = new byte[]{'H', 'e', 'l','l','o', 'w', 'o', 'r', 'l', 'd'};
-							for (int i = 0; i < buffer.length; i++) {
-					    		buf[i] = buffer[i];
-					    	}
-					    	
- 						}*/
+						byte[] buf = readFloppy(MAGNETIC_HEAD.values()[head], 
+                                                cylinder, sector);
 						out.write(buf);
 					}
 				
