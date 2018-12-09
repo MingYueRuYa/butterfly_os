@@ -28,7 +28,7 @@ LABEL_DESC_9:       Descriptor        0,      0,       0
 
 LABEL_DESC_10:      Descriptor        0,      0,       0
 
-%rep  5
+%rep  10
 Descriptor 0, 0, 0
 %endrep
 
@@ -395,8 +395,24 @@ timerHandler equ _timerHandler - $$
     
 
     farjmp:
+        xor eax, eax
+        mov eax, [esp]
+        mov [0x6000], eax
         jmp FAR [esp + 4]
         ret
+
+    asm_cons_putchar:
+        pop ax
+        push 1
+        and eax, 0xff
+        push eax
+        call cons_putchar
+        add esp, 8
+
+        pop ax
+        push 19*8
+        push eax
+        retf
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 

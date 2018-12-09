@@ -22,7 +22,7 @@ fi
 
 mkdir -p bin
 ShowTip "create bin dir successful" "create bin dir error"
-cp fontData.inc kernel.asm pm.inc ./bin
+cp fontData.inc kernel.asm hlt.asm pm.inc ./bin
 
 make
 
@@ -50,6 +50,9 @@ make
 
 nasm boot.asm -o ./bin/boot.bat
 ShowTip "compile boot.asm successful" "compile boot.asm error"
+
+nasm hlt.asm -o ./bin/hlt.bat
+ShowTip "compile hlt.asm successful" "compile hlt.asm error"
 
 #nasm kernel.asm -o ./bin/kernel.bat
 #ShowTip "compile kernel.asm successful" "compile kernel.asm error"

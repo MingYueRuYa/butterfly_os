@@ -42,6 +42,16 @@ void taskswitch8();
 
 int get_leds();
 
+struct CONSOLE {
+    struct SHEET *sht;
+    int cur_x, cur_y, cur_c;
+    char s[2];
+};
+
+static struct CONSOLE g_Console;
+
+void cons_putchar(char chr, char move);
+
 static char keytable[0x54] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0,   0,
 		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '@', '[', 0,   0,   'A', 'S',
@@ -460,7 +470,12 @@ void console_task(struct SHEET *sheet, int memtotal) {
     struct TASK *task = task_now();
     int i, fifobuf[128], cursor_x = 16, cursor_c = COL8_000000;
     int cursor_y = 28;
-    int x, y;
+    int x = 0, y = 0;
+
+    g_Console.sht = sheet;
+    g_Console.cur_x = 8;
+    g_Console.cur_y = 28;
+    g_Console.cur_c = -1;
 
     fifo8_init(&task->fifo, 128, fifobuf, task);
     timer = timer_alloc();
@@ -663,11 +678,18 @@ void console_task(struct SHEET *sheet, int memtotal) {
             else {
                        char c = transferScanCode(i);
                        if (cursor_x < 240 && c!=0 ) {
-                           set_cursor(shtctl, sheet, cursor_x, cursor_y,COL8_000000);
-                           char s[2] = {c, 0};
-                           cmdline[cursor_x/8 - 2] = c;
-                           showString(shtctl, sheet, cursor_x, cursor_y, COL8_FFFFFF, s);
-                           cursor_x += 8;
+//                           set_cursor(shtctl, sheet, cursor_x, cursor_y,COL8_000000);
+//                           char s[2] = {c, 0};
+//                           cmdline[cursor_x/8 - 2] = c;
+//                           showString(shtctl, sheet, cursor_x, cursor_y, COL8_FFFFFF, s);
+//                           cursor_x += 8;
+                            
+                            g_Console.cur_x = cursor_x;
+                            g_Console.cur_y = cursor_y;
+                            cmdline[cursor_x / 8 - 2]  = c;
+                            cons_putchar(c, 1);
+                            cursor_x = g_Console.cur_x;
+                            cursor_y = g_Console.cur_y;
                        }
                 }
 
@@ -1197,6 +1219,16 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c) {
     boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x0 - 2, y1 + 1, x1 + 0, y1 + 1);
     boxfill8(sht->buf, sht->bxsize, COL8_C6C6C6, x1 + 1, y0 - 2, x1 + 1, y1 + 1);
     boxfill8(sht->buf, sht->bxsize, c, x0 - 1, y0 - 1, x1 + 0, y1 + 0); 
+}
+
+void cons_putchar(char c, char move) {
+    set_cursor(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y,
+                COL8_000000);
+    g_Console.s[0] = c;
+    g_Console.s[1] = 0;
+    showString(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y,
+                COL8_FFFFFF, g_Console.s);
+    g_Console.cur_x += 8;
 }
 
 int cons_newline(int cursor_y, struct SHEET *sheet)
