@@ -46,7 +46,7 @@ copySector:
     push di
     push cx
 
-    mov cx, 200h
+    mov cx, 0200h
     mov di, 0
     mov si, 0
     mov ax, word [load_section]

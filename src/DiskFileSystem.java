@@ -6,8 +6,8 @@ public class DiskFileSystem {
     private int cylinder        = 0;
 
     private short fileClusterNo     = 0;
-    private int fileContentCylinder = 0;
-    private int fileContentSector   = 0;
+    private int fileContentCylinder = 7;
+    private int fileContentSector   = 1;
 
     private static int SECTOR_SIZE      = 512;
     private static int CYLINDER_SECTOR  = 18;
@@ -19,6 +19,8 @@ public class DiskFileSystem {
     }
 
     public void addHeader(FileHeader header) {
+    	flashFileContent(header);
+
         if (fileHeaderCount >= 16) {
             flashFileHeaders();
             fileHeaderCount = 0;
@@ -55,7 +57,7 @@ public class DiskFileSystem {
         byte[] buffer = header.getFileBuffer();
         int pos = 0;
         while (sectors > 0) {
-            if (fileContentCylinder >= CYLINDER_SECTOR) {
+            if (fileContentSector >= CYLINDER_SECTOR) {
                 fileContentSector = 1;
                 fileContentCylinder++;
             }

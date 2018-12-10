@@ -1,3 +1,4 @@
+[map symbols kernel.map]
 %include "pm.inc"
 
 org   8000h
@@ -5,7 +6,7 @@ org   8000h
 VRAM_ADDRESS  equ  0x000a0000
 
 
-jmp   LABEL_BEGIN
+jmp  near LABEL_BEGIN
 
 [SECTION .gdt]
  ;                                  段基址          段界限                属性
@@ -14,7 +15,7 @@ LABEL_DESC_CODE32:  Descriptor        0,      0fffffh,       DA_C | DA_32 | DA_L
 LABEL_DESC_VIDEO:   Descriptor        0B8000h,         0fffffh,            DA_DRW
 LABEL_DESC_VRAM:    Descriptor        0,         0fffffh,            DA_DRW | DA_LIMIT_4K
 
-LABEL_DESC_STACK:   Descriptor        0,             0fffffh,        DA_DRW | DA_32
+LABEL_DESC_STACK:   Descriptor        0,             0fffffh,        DA_DRW | DA_32| DA_LIMIT_4K
 
 LABEL_DESC_FONT:    Descriptor        0,         0fffffh,   DA_DRW | DA_LIMIT_4K  
 
@@ -59,6 +60,9 @@ LABEL_IDT:
 
 .2CH:
     Gate SelectorCode32, mouseHandler,0, DA_386IGate
+
+.2DH:
+    Gate SelectorCode32, AsmConsPutCharHandler, 0, DA_386IGate
 
 IdtLen  equ $ - LABEL_IDT
 IdtPtr  dw  IdtLen - 1
@@ -212,7 +216,7 @@ io_delay:
      ;initialize stack for c code
      mov  ax, SelectorStack
      mov  ss, ax
-     mov  esp, 2048
+     mov  esp, 01000h
 
      mov  ax, SelectorVram
      mov  ds,  ax
@@ -290,11 +294,10 @@ timerHandler equ _timerHandler - $$
     pop ds
     popad
 
-    
     iretd
 
 
-    get_font_data:
+get_font_data:
     mov ax, SelectorFont
     mov es, ax
     xor edi, edi
@@ -395,24 +398,24 @@ timerHandler equ _timerHandler - $$
     
 
     farjmp:
-        xor eax, eax
-        mov eax, [esp]
-        mov [0x6000], eax
-        jmp FAR [esp + 4]
+        mov  eax, [esp]
+        push 1*8
+        push eax
+        jmp FAR [esp+12]
         ret
 
-    asm_cons_putchar:
-        pop ax
-        push 1
-        and eax, 0xff
-        push eax
-        call cons_putchar
-        add esp, 8
+asm_cons_putchar:
+AsmConsPutCharHandler equ asm_cons_putchar - $$
+    pushad
+    
+    push 1
+    and eax, 0xff
+    push eax
+    call cons_putchar
+    add esp, 8
 
-        pop ax
-        push 19*8
-        push eax
-        retf
+    popad
+    iretd
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
@@ -429,15 +432,4 @@ LEDS : db 0
 LABEL_SYSTEM_FONT:
 %include "fontData.inc"
 SystemFontLength equ $ - LABEL_SYSTEM_FONT
-
-[SECTION .gs]
-ALIGN 32
-[BITS 32]
-LABEL_STACK:
-times 512  db 0
-TopOfStack1  equ  $ - LABEL_STACK
-times 512 db 0
-TopOfStack2 equ $ - LABEL_STACK
-
-LenOfStackSection equ $ - LABEL_STACK
 

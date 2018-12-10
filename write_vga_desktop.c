@@ -24,10 +24,12 @@
 #include "global_define.h"
 #include "multi_task.h"
 
+void cmd_dir();
+
 struct MEMMAN* memman = (struct MEMMAN*)0x100000;
 
 char get_font_data(int c, int offset);
-
+void func_hlt();
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
@@ -462,6 +464,165 @@ struct SHEET*  launch_console() {
     task_cons = task_console;
 
     return sht_cons;
+}
+
+static struct Buffer buffer;
+
+void cmd_dir() {
+    struct FIFLINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
+    char *s = memman_alloc(memman, 13);
+    s[12] = 0;
+    while (finfo->name[0] != 0) {
+        int k;
+        for (k = 0; k < 8; k++) {
+            if (finfo->name[k] != 0) {
+                s[k] = finfo->name[k];
+            } else {
+                break;
+            }
+        } // for
+
+        int t = 0;
+        s[k] = '.';
+        for (t = 0; t < 3; t++) {
+            s[k] = finfo->ext[t];
+            k++;
+        }
+
+        showString(shtctl, g_Console.sht, 16, 
+                        g_Console.cur_y, COL8_FFFFFF, s);
+        int offset = 16 + 8 * 15;
+        char *p = intToHexStr(finfo->size);
+        showString(shtctl, g_Console.sht, offset, g_Console.cur_y,
+                    COL8_FFFFFF, p);
+        g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
+        finfo++;
+    } // while
+    
+    memman_free(memman, s, 13);
+}
+
+void cmd_type(char *cmdline) {
+    char *name  = memman_alloc(memman, 13); 
+    name[12]    = 0;
+    int p = 0; 
+    int x = 5;
+    for (x = 5; x < 17; x++) {
+        if (cmdline[x] != 0) {
+            name[p] = cmdline[x];
+            p++;
+        } else {
+            break;
+        }
+    } // for
+
+    name[p] = 0;
+    struct FIFLINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
+    while (finfo->name[0] != 0) {
+        char s[13];
+        s[12] = 0;
+        int k;
+        for (k = 0; k < 8; k++) {
+            if (finfo->name[k] != 0) {
+                s[k] = finfo->name[k];
+            } else {
+                break;
+            }
+        } // for
+        
+        int t   = 0;
+        s[k]    = '.';
+        k++;
+        
+        for (t = 0; t < 3; t++) {
+            s[k] = finfo->ext[t];
+            t++;
+        }
+
+        if (strcmp(name, s) == 1) {
+            char *p = FILE_CONTENT_HEAD_ADDR; 
+            p += finfo->clustno * DISK_SECTOR_SIZE;
+            int sz = finfo->size;
+            char c[2];
+            int t = 0;
+            g_Console.cur_x = 16;
+            for (t = 0; t < sz; t++) {
+                c[0] = p[t];
+                c[1] = 0;
+                if (c[0] == 0x09) {
+                    // handle tab key
+                    for (;;) {
+                        showString(shtctl, g_Console.sht, g_Console.cur_x,
+                                    g_Console.cur_y, COL8_FFFFFF, " ");
+                        g_Console.cur_x += 8;
+                        
+                        if (g_Console.cur_x == 8 + 240) {
+                            g_Console.cur_x = 8;
+                            g_Console.cur_y = cons_newline(g_Console.cur_y,
+                                                            g_Console.sht);
+                        }
+
+                        if ((g_Console.cur_x -8) & 0x1f == 0) {
+                            break;
+                        }
+                    } // for
+                } else if (c[0] == 0x0a) {
+                    // handle return 
+                    g_Console.cur_x = 8;
+                    g_Console.cur_y = cons_newline(g_Console.cur_y, 
+                                                    g_Console.sht);
+                } else if (c[0] == 0x0d) {
+                    // do nothing
+                } else {
+                    showString(shtctl, g_Console.sht, g_Console.cur_x,
+                                g_Console.cur_y, COL8_FFFFFF, c);
+                    g_Console.cur_x += 8;
+                    if (g_Console.cur_x == 8 + 240) {
+                        g_Console.cur_x = 16;
+                        g_Console.cur_y = cons_newline(g_Console.cur_y,
+                                                        g_Console.sht);
+                    }
+                }
+            } // for
+        } // if
+        finfo++;
+    } // while
+    g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
+    memman_free(memman, name, 13);
+    g_Console.cur_x = 16;
+}
+
+void cmd_mem(int memtotal)
+{
+    char *s = intToHexStr(memtotal / (1024));
+    showString(shtctl, g_Console.sht, 16, g_Console.cur_y, 
+                 COL8_FFFFFF, "free ");
+    showString(shtctl, g_Console.sht, 52, g_Console.cur_y, 
+                COL8_FFFFFF, " KB");
+    g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
+}
+
+void cmd_cls() {
+    int x = 8;
+    int y = 28;
+    for (y = 28; y < 28 + 128; y++) {
+        for (x = 8; x < 8 + 240; x++) {
+            g_Console.sht->buf[x + y * g_Console.sht->bxsize] = COL8_000000;
+        }
+    }
+
+    sheet_refresh(shtctl, g_Console.sht, 8, 28, 8 + 240, 28 + 128);
+    g_Console.cur_y = 28;
+    showString(shtctl, g_Console.sht, 8, 28, COL8_FFFFFF, ">");
+}
+
+void cmd_hlt() {
+    file_loadfile("abc.exe", &buffer);
+    struct SEGMENT_DESCRIPTOR *gdt = 
+                            (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
+    set_segmdesc(gdt + 19, 0xfffff, buffer.pBuffer, 0x4098);
+    farjmp(0, 19 * 8);
+    memman_free_4k(memman, buffer.pBuffer, buffer.length);
 }
 
 void console_task(struct SHEET *sheet, int memtotal) {
@@ -1263,7 +1424,7 @@ void file_loadfile(char *name, struct Buffer *buffer)
     char *s = memman_alloc(memman, 13);
     s[12] = 0;
 
-    while (finfo->name[0] == 0) {
+    while (finfo->name[0] != 0) {
         int k;
         for (k = 0; k < 8; k++) {
             if (finfo->name[k] != 0) {
@@ -1271,7 +1432,7 @@ void file_loadfile(char *name, struct Buffer *buffer)
             } else {
                 break;
             }
-        } // for
+        }
 
         int t = 0;
         s[k] = '.';

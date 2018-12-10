@@ -15,7 +15,7 @@ struct SEGMENT_DESCRIPTOR {
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
 
 #define AR_TSS32		0x0089
-
+#define AR_CODE32               0x409a
 
 
 
