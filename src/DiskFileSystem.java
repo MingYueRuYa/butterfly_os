@@ -79,14 +79,7 @@ public class DiskFileSystem {
 
             fileContentSector++;
             sectors--;
-        } // while
-
-
-
-
-
-
-
+        }
     }
 
 }
