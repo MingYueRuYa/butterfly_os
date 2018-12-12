@@ -749,6 +749,7 @@ int cons_newline(int cursor_y, struct SHEET *sheet)
                 sheet->buf[x + y * sheet->bxsize] = 
                     sheet->buf[x+(y+16)*sheet->bxsize];
             }
+	}
 
             for (y = 28 + 112; y < 28 + 128; y++) {
                 for (x = 8; x < 8 + 240; x++) {
@@ -756,8 +757,7 @@ int cons_newline(int cursor_y, struct SHEET *sheet)
                 }
             }
 
-            sheet_refresh(shtctl, sheet, 8, 28, 8 + 240, 28 + 128);
-        } // for
+        sheet_refresh(shtctl, sheet, 8, 28, 8 + 240, 28 + 128);
     } // if
     showString(shtctl, sheet, 8, cursor_y, COL8_FFFFFF, ">");
     return cursor_y;
