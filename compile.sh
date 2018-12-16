@@ -22,7 +22,7 @@ fi
 
 mkdir -p bin
 ShowTip "create bin dir successful" "create bin dir error"
-cp fontData.inc kernel.asm hlt.asm pm.inc ./bin
+cp fontData.inc kernel.asm hlt.asm pm.inc api_call.asm ./bin
 
 make
 

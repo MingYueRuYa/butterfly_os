@@ -408,11 +408,9 @@ asm_cons_putchar:
 AsmConsPutCharHandler equ asm_cons_putchar - $$
     pushad
     
-    push 1
-    and eax, 0xff
-    push eax
-    call cons_putchar
-    add esp, 8
+    pushad
+    call kernel_api 
+    add esp, 32
 
     popad
     iretd

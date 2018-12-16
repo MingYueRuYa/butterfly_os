@@ -67,7 +67,7 @@ public class OperatingSystem {
         header.setFileDate(date);
         String s = "abc.exe";
 
-        byte[] bbuf = new byte[64];
+        byte[] bbuf = new byte[128];
         File file = new File("hlt.bat");
         InputStream in = null;
         try {
@@ -109,6 +109,11 @@ public class OperatingSystem {
     	CKernelAsmPrecessor kernelPrecessor = new CKernelAsmPrecessor();
     	kernelPrecessor.process();
     	kernelPrecessor.createKernelBinary();
+
+        CKernelAsmPrecessor appProcessor = new CKernelAsmPrecessor("hlt.bat",
+                            "app_u.asm", "app.asm", "api_call.asm");
+        appProcessor.process();
+        appProcessor.createKernelBinary();
     	
     	OperatingSystem op = new OperatingSystem("boot.bat");
     	op.makeFllopy();

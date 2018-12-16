@@ -1,4 +1,4 @@
-ckernel: kernel_u.asm
+ckernel: kernel_u.asm app_u.asm
 	echo "compile successful..."
 
 kernel_u.asm: ckernel.o
@@ -34,6 +34,12 @@ global_define.o: global_define.c global_define.h
 multi_task.o: multi_task.c multi_task.h
 	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/multi_task.o \
 		multi_task.c -fno-stack-protector
+
+app_u.asm: app.o
+	objconv -fnasm ./bin/app.o ./bin/app_u.asm
+
+app.o: app.c
+	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/app.o  app.c
 
 .PHONY:clean
 clean:

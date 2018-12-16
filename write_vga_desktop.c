@@ -720,6 +720,21 @@ void console_task(struct SHEET *sheet, int memtotal) {
     }
 }
 
+void cons_putstr(char *s) {
+    for (; *s != 0; s++) {
+        cons_putchar(*s, 1);
+    }
+}
+
+void kernel_api(int edi, int esi, int ebp, int esp,
+                int ebx, int edx, int ecx, int eax)
+{
+    if (edx == 1) {
+        cons_putchar(eax & 0xff, 1);
+    } else if (edx == 2) {
+        cons_putstr((char *)(buffer.pBuffer + ebx));
+    }
+}
 
 void cons_putchar(char c, char move) {
     set_cursor(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y,
@@ -729,12 +744,6 @@ void cons_putchar(char c, char move) {
     showString(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y,
                 COL8_FFFFFF, g_Console.s);
     g_Console.cur_x += 8;
-}
-
-void cons_putstr(char *s) {
-    for (; *s != 0; s++) {
-        cons_putchar(*s, 1);
-    }
 }
 
 int cons_newline(int cursor_y, struct SHEET *sheet)
