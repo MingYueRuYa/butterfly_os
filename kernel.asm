@@ -229,6 +229,32 @@ io_delay:
     %include "ckernel.asm"
      jmp $
 
+start_app:  ; void start_app(int eip, int cs, int esp, int ds)
+    cli
+    pushad
+    mov eax, [esp+36] ;eip
+    mov ecx, [esp+40] ;cs
+    mov edx, [esp+44] ;esp
+    mov ebx, [esp+48] ;esp
+
+    mov [0xfe4], esp
+    mov ds, bx
+    mov ss, bx
+    mov esp, edx
+    
+    push ecx
+    push eax
+    call far [esp]
+
+    mov ax, SelectorVram
+    mov ds, ax
+    mov esp, [0xfe4]
+
+    mov ax, SelectorStask
+    mov ss, ax
+
+    popad
+    ret
     
 _SpuriousHandler:
 SpuriousHandler  equ _SpuriousHandler - $$
