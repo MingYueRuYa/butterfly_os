@@ -5,8 +5,11 @@ org   8000h
 
 VRAM_ADDRESS  equ  0x000a0000
 
-
 jmp  near LABEL_BEGIN
+
+LABEL_SYSTEM_FONT:
+%include "fontData.inc"
+SystemFontLength equ $ - LABEL_SYSTEM_FONT
 
 [SECTION .gdt]
  ;                                  段基址          段界限                属性
@@ -216,7 +219,7 @@ io_delay:
      ;initialize stack for c code
      mov  ax, SelectorStack
      mov  ss, ax
-     mov  esp, 01000h
+     mov  esp, 02000h
 
      mov  ax, SelectorVram
      mov  ds,  ax
@@ -229,33 +232,7 @@ io_delay:
     %include "ckernel.asm"
      jmp $
 
-start_app:  ; void start_app(int eip, int cs, int esp, int ds)
-    cli
-    pushad
-    mov eax, [esp+36] ;eip
-    mov ecx, [esp+40] ;cs
-    mov edx, [esp+44] ;esp
-    mov ebx, [esp+48] ;esp
 
-    mov [0xfe4], esp
-    mov ds, bx
-    mov ss, bx
-    mov esp, edx
-    
-    push ecx
-    push eax
-    call far [esp]
-
-    mov ax, SelectorVram
-    mov ds, ax
-    mov esp, [0xfe4]
-
-    mov ax, SelectorStask
-    mov ss, ax
-
-    popad
-    ret
-    
 _SpuriousHandler:
 SpuriousHandler  equ _SpuriousHandler - $$
      iretd
@@ -440,6 +417,33 @@ AsmConsPutCharHandler equ asm_cons_putchar - $$
 
     popad
     iretd
+    
+start_app:  ; void start_app(int eip, int cs, int esp, int ds)
+    cli
+    pushad
+    mov eax, [esp+36] ;eip
+    mov ecx, [esp+40] ;cs
+    mov edx, [esp+44] ;esp
+    mov ebx, [esp+48] ;ds
+
+    mov [0xfe4], esp
+    mov ds, bx
+    mov ss, bx
+    mov esp, edx
+    
+    push ecx
+    push eax
+    call far [esp]
+
+    mov ax, SelectorVram
+    mov ds, ax
+    mov esp, [0xfe4]
+
+    mov ax, SelectorStack
+    mov ss, ax
+
+    popad
+    ret
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
@@ -453,12 +457,6 @@ dwMCRNumber:   dd 0
 LEDS : db 0
 
 
-
-
-
-LABEL_SYSTEM_FONT:
-%include "fontData.inc"
-SystemFontLength equ $ - LABEL_SYSTEM_FONT
 
 
 

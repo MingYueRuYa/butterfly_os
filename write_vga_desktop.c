@@ -621,7 +621,7 @@ void cmd_hlt() {
     set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x4098);
     // new memory
     char *q = memman_alloc_4k(memman, 64*1024);
-    set_segmdesc(gdt+12, 64*1024, -1, q, 0x4092);
+    set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092);
     start_app(0, 11*8, 64*1024, 12*8);
     char *pApp = (char *)(q+0x100);
     showString(shtctl, sht_back, 0, 179, COL8_FFFFFF, pApp);
