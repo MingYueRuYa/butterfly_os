@@ -1,3 +1,8 @@
+/**
+ * File              : OperatingSystem.java
+ * Date              : 2018.12.21 17时28分31秒
+ * Last Modified Date: 2018.12.21 17时28分31秒
+ */
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -67,7 +72,7 @@ public class OperatingSystem {
         header.setFileDate(date);
         String s = "abc.exe";
 
-        byte[] bbuf = new byte[128];
+        byte[] bbuf = new byte[1024];
         File file = new File("hlt.bat");
         InputStream in = null;
         try {

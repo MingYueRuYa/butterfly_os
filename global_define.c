@@ -1,3 +1,8 @@
+/**
+ * File              : global_define.c
+ * Date              : 2018.12.21 14时11分50秒
+ * Last Modified Date: 2018.12.21 14时11分50秒
+ */
 #include "multi_task.h"
 #include "global_define.h"
 
@@ -13,7 +18,6 @@ void fifo8_init(struct FIFO8 *fifo, int size,
     fifo->task  = task;
     return;
 }
-
 #define FLAGS_OVERRUN 0x0001
 int fifo8_put(struct FIFO8 *fifo, unsigned char data)
 {

@@ -1,3 +1,13 @@
+/**
+ * File              : write_vga_desktop.c
+ * Date              : 2018.12.21 15时35分23秒
+ * Last Modified Date: 2018.12.21 15时35分23秒
+ */
+/**
+ * File              : write_vga_desktop.c
+ * Date              : 2018.12.21 14时25分21秒
+ * Last Modified Date: 2018.12.21 14时25分21秒
+ */
 #define  COL8_000000  0
 #define  COL8_FF0000  1
 #define  COL8_00FF00  2

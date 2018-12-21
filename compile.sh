@@ -1,5 +1,7 @@
 #!/bin/bash
-
+# File              : compile.sh
+# Date              : 2018.12.21 17时38分11秒
+# Last Modified Date: 2018.12.21 17时38分11秒
 c_file_name="write_vga_desktop"
 c_kernel_name="ckernel"
 
@@ -51,8 +53,8 @@ make
 nasm boot.asm -o ./bin/boot.bat
 ShowTip "compile boot.asm successful" "compile boot.asm error"
 
-nasm hlt.asm -o ./bin/hlt.bat
-ShowTip "compile hlt.asm successful" "compile hlt.asm error"
+#nasm hlt.asm -o ./bin/hlt.bat
+#ShowTip "compile hlt.asm successful" "compile hlt.asm error"
 
 #nasm kernel.asm -o ./bin/kernel.bat
 #ShowTip "compile kernel.asm successful" "compile kernel.asm error"

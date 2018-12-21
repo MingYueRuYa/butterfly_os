@@ -1,3 +1,6 @@
+;; File              : kernel.asm
+;; Date              : 2018.12.21 14时12分12秒
+;; Last Modified Date: 2018.12.21 14时12分12秒
 [map symbols kernel.map]
 %include "pm.inc"
 
