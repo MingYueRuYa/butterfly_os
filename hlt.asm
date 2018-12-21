@@ -1,9 +1,9 @@
 [map symbols hlt.map]
 [SECTION .s32]
 BITS 32
-mov ax, 'L'
-int 02DH
-mov ax, 'G'
-int 02DH
+main:
+mov al, 'A'
+push ax
+call api_putchar
 
-retf
+ret

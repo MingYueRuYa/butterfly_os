@@ -470,14 +470,17 @@ void cmd_dir() {
     char *s = memman_alloc(memman, 13);
     s[12] = 0;
     while (finfo->name[0] != 0) {
-        int k;
+	
+		      int k;
         for (k = 0; k < 8; k++) {
             if (finfo->name[k] != 0) {
                 s[k] = finfo->name[k];
             } else {
                 break;
             }
+			
         } // for
+
 
         int t = 0;
         s[k] = '.';
@@ -499,6 +502,7 @@ void cmd_dir() {
     
     memman_free(memman, s, 13);
 }
+
 
 void cmd_type(char *cmdline) {
     char *name  = memman_alloc(memman, 13); 
@@ -621,7 +625,7 @@ void cmd_hlt() {
     set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x4098);
     // new memory
     char *q = memman_alloc_4k(memman, 64*1024);
-    set_segmdesc(gdt+12, 64*1024, -1, q, 0x4092);
+    set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092);
     start_app(0, 11*8, 64*1024, 12*8);
     char *pApp = (char *)(q+0x100);
     showString(shtctl, sht_back, 0, 179, COL8_FFFFFF, pApp);
@@ -650,11 +654,11 @@ void console_task(struct SHEET *sheet, int memtotal) {
     timer_init(timer, &task->fifo, 1);
     timer_settime(timer, 50);
 
-    struct FILEINFO *fileinfo = (struct FIFLINFO *)(ADR_DISKIMG);
+
 
     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
     int pos = 0;
-
+    struct FILEINFO *fileinfo = (struct FILEINFO *)(ADR_DISKIMG);
     for(;;) {
        
         io_cli();
