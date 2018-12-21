@@ -232,7 +232,6 @@ io_delay:
     %include "ckernel.asm"
      jmp $
 
-
 _SpuriousHandler:
 SpuriousHandler  equ _SpuriousHandler - $$
      iretd
@@ -455,9 +454,3 @@ ALIGN 32
 MemChkBuf: times 256 db 0
 dwMCRNumber:   dd 0
 LEDS : db 0
-
-
-
-
-
-
