@@ -290,48 +290,43 @@ mouseHandler equ _mouseHandler - $$
 
 _timerHandler:
 timerHandler equ _timerHandler - $$
-     pushad
-     push ds
      push es
-     push fs
-     push gs
- 
+     push ds
+     pushad
+    
+     mov eax, esp
+     push eax
 
+     mov ax, SelectorVram
+     mov ds, ax
+     mov es, ax
+ 
     call intHandlerForTimer
  
-    
-    pop gs
-    pop fs
-    pop es
-    pop ds
+    pop eax 
     popad
+    pop ds
+    pop es
 
     iretd
 
 _exceptionHandler:
 exceptionHandler equ _exceptionHandler - $$
-    cli 
+    sti 
+    push es
+    push ds
+    pushad
+    mov eax, esp
+    push eax
     ; 把内存段切换到内核
     mov ax, SelectorVram
     mov ds, ax
     mov es, ax
-    mov ax, SelectorStack   ; 切换到内核堆栈段
-    mov ss, ax
-
-    mov ecx, [0xfe4]    ; 获取内核堆栈段
-    add ecx, -8
-    mov [ecx+4], ss ;保存中断时的堆栈段
-    mov [ecx+8], esp    ; 保存中断时堆栈指针
-
-    mov esp, ecx; 切换内核指针
 
     call intHandlerException
 
-.kill:  ; 通过把CPU交给内核的方式直接杀掉应用程序
-    mov esp, [0xfe4]
-    sti
-    popad
-    ret
+    jmp near end_app
+
 
 get_font_data:
     mov ax, SelectorFont
@@ -442,41 +437,61 @@ get_font_data:
 
 asm_cons_putchar:
 AsmConsPutCharHandler equ asm_cons_putchar - $$
+    push ds
+    push es
     pushad
+    pushad
+
+    ; 把内存段切换到内核
+    mov ax, SelectorVram
+    mov ds, ax
+    mov es, ax
     
-    pushad
     call kernel_api 
-    add esp, 32
+    cmp eax, 0
+    jne end_app
 
     popad
+    pop es
+    pop ds
+
     iretd
+end_app:
+    mov esp, [eax]
+    popad
+    ret
+
+get_esp:
+    mov eax, esp
+    ret
     
-start_app:  ; void start_app(int eip, int cs, int esp, int ds)
-    cli
+get_ss:
+    xor eax, eax    
+    mov eax, ss
+    ret
+
+start_app:  ; void start_app(int eip, int cs, int esp, int ds, &(task->tss.esp0))
     pushad
+    
+    mov eax, [esp+52]
+    mov [eax], esp
+    mov [eax+4], ss
+
     mov eax, [esp+36] ;eip
     mov ecx, [esp+40] ;cs
     mov edx, [esp+44] ;esp
     mov ebx, [esp+48] ;ds
 
-    mov [0xfe4], esp
     mov ds, bx
-    mov ss, bx
-    mov esp, edx
-    
+    mov es, bx
+
+    or ecx, 3
+    or ebx, 3
+    push ebx
+    push edx
     push ecx
     push eax
-    call far [esp]
-
-    mov ax, SelectorVram
-    mov ds, ax
-    mov esp, [0xfe4]
-
-    mov ax, SelectorStack
-    mov ss, ax
-
-    popad
-    ret
+    retf
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 

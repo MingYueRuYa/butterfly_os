@@ -23,7 +23,7 @@ struct TASK {
     int sel, flags;
     int priority;
     int level;
-    struct FIFO8 *fifo;
+    struct FIFO8 fifo;
     struct TSS32 tss;
 };
 
@@ -32,7 +32,7 @@ struct TASK {
 #define  MAX_TASKLEVELS 3
 
 #define  TASK_GDT0  7
-#define  SIZE_OF_TASK  120
+#define  SIZE_OF_TASK  148
 
 struct TASKLEVEL {
     int running;

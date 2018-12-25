@@ -29,6 +29,8 @@
 #include "global_define.h"
 #include "multi_task.h"
 
+int get_esp();
+int get_ss();
 void cmd_dir();
 
 struct MEMMAN* memman = (struct MEMMAN*)0x100000;
@@ -48,6 +50,7 @@ int x0, int y0);
 void taskswitch8();
 
 int get_leds();
+void start_app(int eip, int cs, int esp, int ds, int *esp0);
 
 struct CONSOLE {
     struct SHEET *sht;
@@ -69,7 +72,7 @@ static char keytable[0x54] = {
 	};
 
 
-static char keytable1[0x80] = {
+static char keytable1[0x90] = {
 		0,   0,   '!', '@', '#', '$', '%','^', '&', '*', '(', ')', '-', '=', '~', 0,   0,
 		'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '`', '{', 0,   0,   'A', 'S',
 		'D', 'F', 'G', 'H', 'J', 'K', 'L', '+', '*', 0,   0,   '}', 'Z', 'X', 'C', 'V',
@@ -627,16 +630,17 @@ void cmd_hlt() {
     file_loadfile("abc.exe", &buffer);
     struct SEGMENT_DESCRIPTOR *gdt = 
                             (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
-    set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x4098);
+    set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x409a+0x60);
     // new memory
-    char *q = memman_alloc_4k(memman, 64*1024);
-    set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092);
-    start_app(0, 11*8, 64*1024, 12*8);
+    char *q = (char *)memman_alloc_4k(memman, 64*1024);
+    set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092 + 0x60);
+    struct TASK *task = task_now();
+    start_app(0, 11*8, 64*1024, 12*8, &(task->tss.esp0));
     char *pApp = (char *)(q+0x100);
     showString(shtctl, sht_back, 0, 179, COL8_FFFFFF, pApp);
 
-    memman_free_4k(memman, buffer.pBuffer, buffer.length);
-    memman_free_4k(memman, q, 64 *1024);
+    memman_free_4k(memman, (unsigned int)buffer.pBuffer, buffer.length);
+    memman_free_4k(memman, (unsigned int)q, 64 *1024);
 }
 
 void console_task(struct SHEET *sheet, int memtotal) {
@@ -645,8 +649,8 @@ void console_task(struct SHEET *sheet, int memtotal) {
     struct TASK *task = task_now();
     int i, cursor_c = COL8_000000;
     int x = 0, y = 0;
-    int *fifobuf = memman_alloc(memman, 128);
-    char *cmdline = memman_alloc(memman, 30);
+    char *fifobuf = (char *)memman_alloc(memman, 128);
+    char *cmdline = (char *)memman_alloc(memman, 30);
 
 
     g_Console.sht = sheet;
@@ -742,14 +746,19 @@ void cons_putstr(char *s) {
     }
 }
 
-void kernel_api(int edi, int esi, int ebp, int esp,
+int* kernel_api(int edi, int esi, int ebp, int esp,
                 int ebx, int edx, int ecx, int eax)
 {
+    struct TASK *task = task_now();
     if (edx == 1) {
         cons_putchar(eax & 0xff, 1);
     } else if (edx == 2) {
         cons_putstr((char *)(buffer.pBuffer + ebx));
+    } else if (edx == 4) {
+        return &(task->tss.esp0);
     }
+
+    return 0;
 }
 
 void cons_putchar(char c, char move) {
@@ -1306,16 +1315,16 @@ void file_loadfile(char *name, struct Buffer *buffer)
     memman_free(memman, s, 13);
 }
 
-int intHandlerException(int *esp)
+int* intHandlerException(int *esp)
 {
     g_Console.cur_x = 8;
-    cons_putstr("INT OD ");
+    cons_putstr("INT 0D ");
     g_Console.cur_x = 8;
     g_Console.cur_y += 16;
     cons_putstr("General Protected Exception");
     g_Console.cur_y += 16;
     g_Console.cur_x = 8;
-    return 1;
+    
+    struct TASK *task = task_now();
+    return &(task->tss.esp0);
 }
-
-
