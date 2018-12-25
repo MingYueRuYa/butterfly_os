@@ -1,10 +1,5 @@
 /**
  * File              : write_vga_desktop.c
- * Date              : 2018.12.21 15时35分23秒
- * Last Modified Date: 2018.12.21 15时35分23秒
- */
-/**
- * File              : write_vga_desktop.c
  * Date              : 2018.12.21 14时25分21秒
  * Last Modified Date: 2018.12.21 14时25分21秒
  */
@@ -1310,3 +1305,17 @@ void file_loadfile(char *name, struct Buffer *buffer)
 
     memman_free(memman, s, 13);
 }
+
+int intHandlerException(int *esp)
+{
+    g_Console.cur_x = 8;
+    cons_putstr("INT OD ");
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    cons_putstr("General Protected Exception");
+    g_Console.cur_y += 16;
+    g_Console.cur_x = 8;
+    return 1;
+}
+
+
