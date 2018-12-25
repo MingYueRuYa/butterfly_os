@@ -1,6 +1,3 @@
-;; File              : kernel.asm
-;; Date              : 2018.12.21 14时12分12秒
-;; Last Modified Date: 2018.12.21 14时12分12秒
 [map symbols kernel.map]
 %include "pm.inc"
 
@@ -75,7 +72,7 @@ LABEL_IDT:
     Gate SelectorCode32, mouseHandler,0, DA_386IGate
 
 .2DH:
-    Gate SelectorCode32, AsmConsPutCharHandler, 0, DA_386IGate
+    Gate SelectorCode32, AsmConsPutCharHandler, 0, DA_386IGate+0x60
 
 IdtLen  equ $ - LABEL_IDT
 IdtPtr  dw  IdtLen - 1
