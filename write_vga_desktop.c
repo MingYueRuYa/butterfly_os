@@ -24,8 +24,8 @@
 #include "global_define.h"
 #include "multi_task.h"
 void cmd_dir();
-int get_esp();
-int get_ss();
+void asm_end_app(int*);
+void kill_process();
 void cons_putstr(char *s);
 struct MEMMAN* memman = (struct MEMMAN*)0x100000;
 void asm_cons_putchar();
@@ -290,6 +290,14 @@ void CMain(void) {
 //           char *p = intToHexStr(data);
    //        showString(shtctl, sht_back, 0, pos, COL8_FFFFFF, p);
      //      pos += 16;
+	 		transferScanCode(data);
+			if (data == KEY_CONTROL && key_shift != 0 && task_cons->tss.ss0 != 0) {
+				cons_putstr("kill process");
+				io_cli();
+				int addr_code32  get_code32_addr();
+				task_cons->tss.eip = (int)kill_process - addr_code32;
+				io_sti();
+			}
 
 
          if (data == 0x0f) {
@@ -370,7 +378,7 @@ void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cursor_x, int c
 int isSpecialKey(int data) {
     transferScanCode(data);
 
-    if (data == 0x3a || data == 0xba || data == 0x2a || data == 0x36
+    if (data == 0x3a || data == 0x1d || data == 0xba || data == 0x2a || data == 0x36
        || data == 0xaa || data == 0xb6) {
         return 1;
     }
@@ -462,6 +470,12 @@ struct SHEET*  launch_console() {
     task_cons = task_console;
 
     return sht_cons;
+}
+
+void kill_process() {
+    cons_newline(g_Console.cur_y, g_Console.sht);
+    g_Console.cur_y += 16;
+    asm_end_app(&(task_cons->tss.esp0));
 }
 
 static struct Buffer buffer;
@@ -621,20 +635,21 @@ void cmd_cls() {
 
 void cmd_hlt() {
     file_loadfile("abc.exe", &buffer);
-    struct SEGMENT_DESCRIPTOR *gdt = 
-                            (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
-    set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x409a+0x60);
-    // new memory
-    //char *q = (char *)memman_alloc_4k(memman, 64*1024);
-	char *q = (char*) memman_alloc(memman, 1024);
-    set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092 + 0x60);
+    struct SEGMENT_DESCRIPTOR *gdt =(struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
+    set_segmdesc(gdt+11, 0xfffff, (int) buffer.pBuffer, 0x409a + 0x60);
+    //new memory 
+   char *q = (char *) memman_alloc_4k(memman, 64*1024);
+  //  char *q = (char*) memman_alloc(memman, 1024);
+    set_segmdesc(gdt+12, 64 * 1024 - 1,(int) q ,0x4092 + 0x60);
+   // set_segmdesc(gdt+12, 1024 - 1,(int) q ,0x4092 + 0x60);
     struct TASK *task = task_now();
-	task->tss.esp0 = 0;
-    start_app(0, 11*8, 64*1024, 12*8, &(task->tss.esp0));
+    task->tss.esp0 = 0;
+    start_app(0, 11*8,64*1024, 12*8, &(task->tss.esp0));
+   // start_app(0, 11*8, 1024, 12*8, &(task->tss.esp0));
+    memman_free_4k(memman,(unsigned int) buffer.pBuffer, buffer.length);
+    memman_free_4k(memman, (unsigned int) q, 64 * 1024);
+   // memman_free(memman, (unsigned int)q, 1024);
 
-    memman_free_4k(memman, (unsigned int)buffer.pBuffer, buffer.length);
-//    memman_free_4k(memman, (unsigned int)q, 64 *1024);
-    memman_free_4k(memman, (unsigned int)q, 1024);
 }
 
 void console_task(struct SHEET *sheet, int memtotal) {
