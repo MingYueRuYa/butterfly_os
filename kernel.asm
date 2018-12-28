@@ -47,9 +47,12 @@ SelectorVram      equ   LABEL_DESC_VRAM   -  LABEL_GDT
 SelectorFont      equ   LABEL_DESC_FONT - LABEL_GDT
 
 LABEL_IDT:
-%rep  13
+%rep  12
     Gate  SelectorCode32, SpuriousHandler,0, DA_386IGate
 %endrep
+
+.0Ch:
+    Gate SelectorCode32, stackOverFlowHandler, 0, DA_386IGate
 
 .0Dh:
     Gate SelectorCode32, exceptionHandler, 0, DA_386IGate
@@ -324,6 +327,22 @@ exceptionHandler equ _exceptionHandler - $$
 
     jmp near end_app
 
+_stackOverFlowHandler:
+stackOverFlowHandler equ _stackOverFlowHandler - $$
+    sti
+    push es
+    push ds
+    pushad
+    mov eax, esp
+    push eax
+    ; 把内存段切换到内核
+    mov ax, SelectorVram
+    mov ds, ax
+    mov es, ax
+
+    call intHandlerForStackOverFlow
+
+    jmp near end_app
 
 get_font_data:
     mov ax, SelectorFont

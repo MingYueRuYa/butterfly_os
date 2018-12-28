@@ -632,11 +632,13 @@ void cmd_hlt() {
                             (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
     set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x409a+0x60);
     // new memory
-    char *q = (char *)memman_alloc_4k(memman, 64*1024);
+    // char *q = (char *)memman_alloc_4k(memman, 64*1024);
+    char *q = (char *)memman_alloc_4k(memman, 1024);
     buffer.pDataSeg = (unsigned char *)q;
     set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092 + 0x60);
     struct TASK *task = task_now();
-    start_app(0, 11*8, 64*1024, 12*8, &(task->tss.esp0));
+    task->tss.esp0 = 0;
+    // start_app(0, 11*8, 64*1024, 12*8, &(task->tss.esp0));
     char *pApp = (char *)(q+0x100);
     showString(shtctl, sht_back, 0, 179, COL8_FFFFFF, pApp);
 
@@ -1338,4 +1340,29 @@ int* intHandlerException(int *esp)
     
     struct TASK *task = task_now();
     return &(task->tss.esp0);
+}
+
+int *intHandlerForStackOverFlow(int *esp)
+{
+    g_Console.cur_x = 8;
+    cons_putstr("INT OC");
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    cons_putchar("Stack Exception");
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    char *p = intToHexStr(esp[11]);
+    cons_putchar("EIP = ");
+    cons_putchar(p);
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    struct TASK *task = task_now();
+    return &(task->tss.esp0);
+
+
+
+
+
+
+
 }
