@@ -36,6 +36,7 @@ struct FILEINFO {
 #define API_CALL_INDEX_TABLE 0x5000
 struct Buffer {
     unsigned char *pBuffer;
+    unsigned char *pDataSeg;
     int length;
 };
 
