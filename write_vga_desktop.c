@@ -28,11 +28,10 @@
 #include "timer.h"
 #include "global_define.h"
 #include "multi_task.h"
-
+void cmd_dir();
 int get_esp();
 int get_ss();
-void cmd_dir();
-
+void cons_putstr(char *s);
 struct MEMMAN* memman = (struct MEMMAN*)0x100000;
 void asm_cons_putchar();
 char get_font_data(int c, int offset);
@@ -47,7 +46,6 @@ void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram,int xsize,  unsigned char c, int x, int y,
 int x0, int y0);
 
-void taskswitch8();
 
 int get_leds();
 void start_app(int eip, int cs, int esp, int ds, int *esp0);
@@ -475,7 +473,7 @@ static struct Buffer buffer;
 
 void cmd_dir() {
     struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
-    char *s = memman_alloc(memman, 13);
+    char *s = (char *)memman_alloc(memman, 13);
     s[12] = 0;
     while (finfo->name[0] != 0) {
 	
@@ -508,12 +506,12 @@ void cmd_dir() {
         finfo++;
     } // while
     
-    memman_free(memman, s, 13);
+    memman_free(memman, (int)s, 13);
 }
 
 
 void cmd_type(char *cmdline) {
-    char *name  = memman_alloc(memman, 13); 
+    char *name  = (char *)memman_alloc(memman, 13); 
     name[12]    = 0;
     int p = 0; 
     int x = 5;
@@ -550,7 +548,7 @@ void cmd_type(char *cmdline) {
         }
 
         if (strcmp(name, s) == 1) {
-            char *p = FILE_CONTENT_HEAD_ADDR; 
+            char *p = (char *)FILE_CONTENT_HEAD_ADDR; 
             p += finfo->clustno * DISK_SECTOR_SIZE;
             int sz = finfo->size;
             char c[2];
@@ -599,7 +597,7 @@ void cmd_type(char *cmdline) {
         finfo++;
     } // while
     g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
-    memman_free(memman, name, 13);
+    memman_free(memman, (int)name, 13);
     g_Console.cur_x = 16;
 }
 
@@ -632,15 +630,16 @@ void cmd_hlt() {
                             (struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
     set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x409a+0x60);
     // new memory
-    char *q = (char *)memman_alloc_4k(memman, 64*1024);
+    //char *q = (char *)memman_alloc_4k(memman, 64*1024);
+	char *q = (char*) memman_alloc(memman, 1024);
     set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092 + 0x60);
     struct TASK *task = task_now();
+	task->tss.esp0 = 0;
     start_app(0, 11*8, 64*1024, 12*8, &(task->tss.esp0));
-    char *pApp = (char *)(q+0x100);
-    showString(shtctl, sht_back, 0, 179, COL8_FFFFFF, pApp);
 
     memman_free_4k(memman, (unsigned int)buffer.pBuffer, buffer.length);
-    memman_free_4k(memman, (unsigned int)q, 64 *1024);
+//    memman_free_4k(memman, (unsigned int)q, 64 *1024);
+    memman_free_4k(memman, (unsigned int)q, 1024);
 }
 
 void console_task(struct SHEET *sheet, int memtotal) {
@@ -755,7 +754,14 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
     } else if (edx == 2) {
         cons_putstr((char *)(buffer.pBuffer + ebx));
     } else if (edx == 4) {
-        return &(task->tss.esp0);
+        task->tss.ss0 = 0;
+        char *p = intToHexStr(task->tss.esp0);
+        if (task == task_cons) {
+        showString(shtctl, sht_back, 0, 215, COL8_000000, p);
+        }
+		
+		
+        return &task_cons->tss.esp0;
     }
 
     return 0;
@@ -1313,6 +1319,23 @@ void file_loadfile(char *name, struct Buffer *buffer)
     } // while
 
     memman_free(memman, s, 13);
+}
+
+int* intHandlerForStackOverFlow(int* esp) {
+    g_Console.cur_x = 8;
+    cons_putstr("INT OC");
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    cons_putstr("Stack Exception");
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    char *p = intToHexStr(esp[11]);
+    cons_putstr("EIP = ");
+    cons_putstr(p);
+    g_Console.cur_x = 8;
+    g_Console.cur_y += 16;
+    struct TASK *task = task_now();
+    return &(task->tss.esp0);
 }
 
 int* intHandlerException(int *esp)

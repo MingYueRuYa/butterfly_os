@@ -47,16 +47,20 @@ SelectorVram      equ   LABEL_DESC_VRAM   -  LABEL_GDT
 SelectorFont      equ   LABEL_DESC_FONT - LABEL_GDT
 
 LABEL_IDT:
-%rep  13
+%rep  12
     Gate  SelectorCode32, SpuriousHandler,0, DA_386IGate
 %endrep
 
+.0Ch:
+    Gate SelectorCode32, stackOverFlowHandler,0, DA_386IGate
+    
 .0Dh:
     Gate SelectorCode32, exceptionHandler, 0, DA_386IGate
 
 %rep  18
     Gate  SelectorCode32, SpuriousHandler,0, DA_386IGate
 %endrep
+
 
 .020h:
     Gate SelectorCode32, timerHandler,0, DA_386IGate
@@ -73,6 +77,7 @@ LABEL_IDT:
 
 .2DH:
     Gate SelectorCode32, AsmConsPutCharHandler, 0, DA_386IGate+0x60
+
 
 IdtLen  equ $ - LABEL_IDT
 IdtPtr  dw  IdtLen - 1
@@ -239,6 +244,7 @@ io_delay:
     %include "ckernel.asm"
      jmp $
 
+
 _SpuriousHandler:
 SpuriousHandler  equ _SpuriousHandler - $$
      iretd
@@ -251,6 +257,10 @@ KeyBoardHandler equ _KeyBoardHandler - $$
      push fs
      push gs
     
+     mov  ax, SelectorVram
+     mov  ds, ax
+     mov  es, ax
+     mov  gs, ax
 
      call intHandlerFromC
     
@@ -273,6 +283,11 @@ mouseHandler equ _mouseHandler - $$
      push fs
      push gs
 
+     mov  ax, SelectorVram
+     mov  ds, ax
+     mov  es, ax
+     mov  gs, ax
+     
      call intHandlerForMouse
 
      pop gs
@@ -297,6 +312,7 @@ timerHandler equ _timerHandler - $$
      mov ax, SelectorVram
      mov ds, ax
      mov es, ax
+     mov  gs, ax
  
     call intHandlerForTimer
  
@@ -306,6 +322,23 @@ timerHandler equ _timerHandler - $$
     pop es
 
     iretd
+    
+_stackOverFlowHandler:
+stackOverFlowHandler equ _stackOverFlowHandler - $$
+    sti
+    push es
+    push ds
+    pushad
+    mov eax, esp
+    push eax
+    ;把内存段切换到内核
+    mov  ax, SelectorVram
+    mov  ds, ax
+    mov  es, ax 
+
+    call intHandlerForStackOverFlow
+    
+    jmp near end_app
 
 _exceptionHandler:
 exceptionHandler equ _exceptionHandler - $$
@@ -443,6 +476,7 @@ AsmConsPutCharHandler equ asm_cons_putchar - $$
     mov ax, SelectorVram
     mov ds, ax
     mov es, ax
+    mov  gs, ax
     
     call kernel_api 
     cmp eax, 0
