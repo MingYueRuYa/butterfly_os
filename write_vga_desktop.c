@@ -633,6 +633,7 @@ void cmd_hlt() {
     set_segmdesc(gdt + 11, 0xfffff, buffer.pBuffer, 0x409a+0x60);
     // new memory
     char *q = (char *)memman_alloc_4k(memman, 64*1024);
+    buffer.pDataSeg = (unsigned char *)q;
     set_segmdesc(gdt+12, 64*1024 - 1, q, 0x4092 + 0x60);
     struct TASK *task = task_now();
     start_app(0, 11*8, 64*1024, 12*8, &(task->tss.esp0));
@@ -750,12 +751,22 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
                 int ebx, int edx, int ecx, int eax)
 {
     struct TASK *task = task_now();
+    struct SHEET *sht = 0;
+    int *reg = &eax + 1;
+
     if (edx == 1) {
         cons_putchar(eax & 0xff, 1);
     } else if (edx == 2) {
         cons_putstr((char *)(buffer.pBuffer + ebx));
     } else if (edx == 4) {
         return &(task->tss.esp0);
+    } else if (edx == 5) {
+        sht = sheet_alloc(shtctl); 
+        sheet_setbuf(sht, (char *)(ecx+buffer.pDataSeg), esi, edi, eax);
+        make_window8(shtctl, sht, (char *)(ecx+buffer.pBuffer), 0);
+        sheet_slide(shtctl, sht, 100, 50);
+        sheet_updown(shtctl, sht, 3);
+        reg[7] = (int)sht;
     }
 
     return 0;

@@ -449,6 +449,7 @@ AsmConsPutCharHandler equ asm_cons_putchar - $$
     jne end_app
 
     popad
+    popad
     pop es
     pop ds
 
@@ -489,6 +490,25 @@ start_app:  ; void start_app(int eip, int cs, int esp, int ds, &(task->tss.esp0)
     push ecx
     push eax
     retf
+
+api_openwin:    
+; int api_openwin(char *buf, int xsiz, int ysiz, int col_inv, char *title)
+    push edi
+    push esi
+    push ebx
+    mov edx, 5
+    mov ebx, [esp+16] ; buf
+    mov esi, [esp+20] ; xsiz
+    mov edi, [esp+24] ; ysiz
+    mov eax, [esp+28] ; col_inv
+    mov ecx, [esp+32] ; title
+
+    int 02Dh
+    pop ebx
+    pop esi
+    pop edi
+
+    ret
 
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
