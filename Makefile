@@ -39,7 +39,8 @@ app_u.asm: app.o
 	objconv -fnasm ./bin/app.o ./bin/app_u.asm
 
 app.o: app.c
-	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/app.o  app.c
+	gcc -m32 -fno-asynchronous-unwind-tables -s -c -o ./bin/app.o  app.c \
+		-fno-stack-protector
 
 .PHONY:clean
 clean:
