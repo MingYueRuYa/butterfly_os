@@ -524,6 +524,12 @@ start_app:  ; void start_app(int eip, int cs, int esp, int ds, &(task->tss.esp0)
     push eax
     retf
 
+asm_end_app:
+    mov eax, [esp + 4]
+    mov esp, [eax]
+    mov DWORD [eax+4], 0
+    popad
+    ret
 SegCode32Len   equ  $ - LABEL_SEG_CODE32
 
 

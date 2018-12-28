@@ -1,3 +1,4 @@
+[map symbols app_c.map]
 [SECTION .s32]
 BITS 32
 call main
