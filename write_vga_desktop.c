@@ -177,6 +177,8 @@ int cons_newline(int cursor_y, struct SHEET *sheet);
 
 void file_loadfile(char *fileName, struct Buffer *pBuffer);
 
+int KEY_CONTROL = 0x1D;
+
 void CMain(void) {
 
     initBootInfo(&bootInfo);
@@ -294,7 +296,7 @@ void CMain(void) {
 			if (data == KEY_CONTROL && key_shift != 0 && task_cons->tss.ss0 != 0) {
 				cons_putstr("kill process");
 				io_cli();
-				int addr_code32  get_code32_addr();
+				int addr_code32 = get_code32_addr();
 				task_cons->tss.eip = (int)kill_process - addr_code32;
 				io_sti();
 			}
