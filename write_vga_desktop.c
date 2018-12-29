@@ -281,7 +281,7 @@ void CMain(void) {
 
     for(;;) {
 
-       io_cli();
+       //io_cli();
        if (fifo8_status(&keyinfo) + fifo8_status(&mouseinfo) +
            fifo8_status(&timerinfo) == 0) {
  
@@ -315,6 +315,7 @@ void CMain(void) {
                    key_to = 0;
                    make_wtitle8(shtctl, shtMsgBox,  "task_a",1);
                    make_wtitle8(shtctl, sht_cons, "console", 0);
+                   fifo8_put(&task_cons->fifo, 0x58);
                    msg = PROC_PAUSE;
                }              
 
@@ -641,6 +642,7 @@ void cmd_hlt() {
     set_segmdesc(gdt+11, 0xfffff, (int) buffer.pBuffer, 0x409a + 0x60);
     //new memory 
    char *q = (char *) memman_alloc_4k(memman, 64*1024);
+   buffer.pDataSeg = (unsigned char *)q;
   //  char *q = (char*) memman_alloc(memman, 1024);
     set_segmdesc(gdt+12, 64 * 1024 - 1,(int) q ,0x4092 + 0x60);
    // set_segmdesc(gdt+12, 1024 - 1,(int) q ,0x4092 + 0x60);
@@ -679,6 +681,7 @@ void console_task(struct SHEET *sheet, int memtotal) {
     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
     int pos = 0;
     struct FILEINFO *fileinfo = (struct FILEINFO *)(ADR_DISKIMG);
+	int hlt = 0;
     for(;;) {
        
         io_cli();
@@ -722,6 +725,7 @@ void console_task(struct SHEET *sheet, int memtotal) {
                    cmd_dir();
                 } else if (strcmp(cmdline, "hlt") == 1) {
                   cmd_hlt();
+				  hlt = 1;
                 } else if (cmdline[0] == 't' && cmdline[1] == 'y' &&
                             cmdline[2] == 'p' && cmdline[3] == 'e') {
 			cmd_type(cmdline);
@@ -761,20 +765,32 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
                 int ebx, int edx, int ecx, int eax)
 {
     struct TASK *task = task_now();
+	struct SHEET *sht;
+	int *reg = &eax + 1;
     if (edx == 1) {
         cons_putchar(eax & 0xff, 1);
     } else if (edx == 2) {
         cons_putstr((char *)(buffer.pBuffer + ebx));
     } else if (edx == 4) {
         task->tss.ss0 = 0;
-        char *p = intToHexStr(task->tss.esp0);
-        if (task == task_cons) {
-        showString(shtctl, sht_back, 0, 215, COL8_000000, p);
-        }
-		
-		
         return &task_cons->tss.esp0;
-    }
+    } else if (edx == 5) {
+	
+		sht = sheet_alloc(shtctl);
+		sheet_setbuf(sht, (char *)(ebx+buffer.pDataSeg), esi, edi, eax);
+		make_window8(shtctl, sht, (char *)(ecx+buffer.pBuffer), 0);
+		sheet_slide(shtctl, sht, 100, 50);
+		sheet_updown(shtctl, sht, 3);
+		reg[7] = (int)sht;
+	} else if (edx == 6) {
+		sht = (struct SHEET *)ebx;
+		showString(shtctl, sht, esi, edi, eax, (char *)(ebp+buffer.pBuffer));
+		sheet_refresh(shtctl, sht, esi, edi, esi + ecx * 8, edi+16);
+	} else if (edx == 7) {
+		sht = (struct SHEET *)ebx;
+		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
+		sheet_refresh(shtctl, sht, eax, ecx, esi+1, edi+1);
+	}
 
     return 0;
 }
@@ -1294,7 +1310,7 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c) {
 void file_loadfile(char *name, struct Buffer *buffer)
 {
     struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
-    char *s = memman_alloc(memman, 13);
+    char *s = (char *) memman_alloc(memman, 13);
     s[12] = 0;
 
     while (finfo->name[0] != 0) {
@@ -1318,7 +1334,7 @@ void file_loadfile(char *name, struct Buffer *buffer)
         if (strcmp(name, s) == 1) {
             buffer->pBuffer = (char *)memman_alloc_4k(memman, finfo->size);
             buffer->length  = finfo->size;
-            char *p = FILE_CONTENT_HEAD_ADDR;
+            char *p = (char *)FILE_CONTENT_HEAD_ADDR;
             p += finfo->clustno * DISK_SECTOR_SIZE;
             int sz = finfo->size;
             int t = 0;
@@ -1330,7 +1346,7 @@ void file_loadfile(char *name, struct Buffer *buffer)
         finfo++;
     } // while
 
-    memman_free(memman, s, 13);
+    memman_free(memman, (unsigned int) s, 13);
 }
 
 int* intHandlerForStackOverFlow(int* esp) {
