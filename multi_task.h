@@ -23,7 +23,7 @@ struct TASK {
     int sel, flags;
     int priority;
     int level;
-    struct FIFO8 *fifo;
+    struct FIFO8 fifo;
     struct TSS32 tss;
 };
 

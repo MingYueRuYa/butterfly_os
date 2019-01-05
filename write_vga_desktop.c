@@ -29,6 +29,7 @@ void kill_process();
 void cons_putstr(char *s);
 struct MEMMAN* memman = (struct MEMMAN*)0x100000;
 void asm_cons_putchar();
+
 char get_font_data(int c, int offset);
 void func_hlt();
 void io_hlt(void);
@@ -158,7 +159,7 @@ static struct SHEET* shtMsgBox;
 static struct SHTCTL *shtctl;
 static struct SHEET *sht_back, *sht_mouse;
 
-void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cursor_x, int cursor_y, int cursor_c);
+void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cur_x, int cur_y, int cursor_c);
 
 
 struct SHEET *launch_console();
@@ -182,6 +183,7 @@ int KEY_CONTROL = 0x1D;
 void CMain(void) {
 
     initBootInfo(&bootInfo);
+  
 
     unsigned char *buf_win_b;
     struct SHEET *sht_win_b[3];
@@ -281,7 +283,7 @@ void CMain(void) {
 
     for(;;) {
 
-       //io_cli();
+     //  io_cli();
        if (fifo8_status(&keyinfo) + fifo8_status(&mouseinfo) +
            fifo8_status(&timerinfo) == 0) {
  
@@ -289,18 +291,17 @@ void CMain(void) {
        } else if(fifo8_status(&keyinfo) != 0){
            io_sti();
            data = fifo8_get(&keyinfo);
-//           char *p = intToHexStr(data);
-   //        showString(shtctl, sht_back, 0, pos, COL8_FFFFFF, p);
-     //      pos += 16;
-	 		transferScanCode(data);
-			if (data == KEY_CONTROL && key_shift != 0 && task_cons->tss.ss0 != 0) {
-				cons_putstr("kill process");
-				io_cli();
-				int addr_code32 = get_code32_addr();
-				task_cons->tss.eip = (int)kill_process - addr_code32;
-				io_sti();
-			}
-
+          // char *p = intToHexStr(data);
+          // showString(shtctl, sht_back, 0, pos, COL8_FFFFFF, p);
+          // pos += 16;
+         transferScanCode(data);
+         if (data == KEY_CONTROL && key_shift != 0 && task_cons->tss.ss0 != 0 ) {
+             cons_putstr("kill process");
+             io_cli();
+             int addr_code32 = get_code32_addr();             
+             task_cons->tss.eip = (int)kill_process - addr_code32;
+             io_sti();
+         }
 
          if (data == 0x0f) {
                int msg = -1;
@@ -343,6 +344,7 @@ void CMain(void) {
                      task_sleep(task_a);
                  }
            }
+
                      
        } else if (fifo8_status(&mouseinfo) != 0) {
            show_mouse_info(shtctl, sht_back, sht_mouse);
@@ -371,7 +373,8 @@ void CMain(void) {
     } 
 }
 
-void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cursor_x, int cursor_y ,int cursor_c) {
+
+void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cursor_x, int cursor_y,int cursor_c) {
     boxfill8(sheet->buf, sheet->bxsize, cursor_c, cursor_x,
                cursor_y, cursor_x + 7, cursor_y + 15);
     sheet_refresh(shtctl, sheet, cursor_x, cursor_y, cursor_x+8, cursor_y + 16);
@@ -481,86 +484,83 @@ void kill_process() {
     asm_end_app(&(task_cons->tss.esp0));
 }
 
-static struct Buffer buffer;
+static  struct Buffer buffer;
 
 void cmd_dir() {
-    struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
+    struct FILEINFO *finfo = (struct FILEINFO*)(ADR_DISKIMG);
     char *s = (char *)memman_alloc(memman, 13);
     s[12] = 0;
     while (finfo->name[0] != 0) {
-	
-		      int k;
+        
+        int k;
         for (k = 0; k < 8; k++) {
-            if (finfo->name[k] != 0) {
-                s[k] = finfo->name[k];
-            } else {
-                break;
-            }
-			
-        } // for
-
-
+        if (finfo->name[k] != 0) {
+              s[k] = finfo->name[k]; 
+        }else {
+           break;
+           }
+                   
+        }
+    
         int t = 0;
         s[k] = '.';
         k++;
         for (t = 0; t < 3; t++) {
             s[k] = finfo->ext[t];
             k++;
-        }
-
-        showString(shtctl, g_Console.sht, 16, 
-                        g_Console.cur_y, COL8_FFFFFF, s);
-        int offset = 16 + 8 * 15;
-        char *p = intToHexStr(finfo->size);
-        showString(shtctl, g_Console.sht, offset, g_Console.cur_y,
-                    COL8_FFFFFF, p);
+         }
+    
+                       
+        showString(shtctl, g_Console.sht, 16, g_Console.cur_y, COL8_FFFFFF, s);
+        int offset = 16 + 8*15;
+        char* p = intToHexStr(finfo->size);
+        showString(shtctl, g_Console.sht, offset, g_Console.cur_y, COL8_FFFFFF, p);
         g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
         finfo++;
-    } // while
-    
+      } 
+
     memman_free(memman, (int)s, 13);
 }
 
 
 void cmd_type(char *cmdline) {
-    char *name  = (char *)memman_alloc(memman, 13); 
-    name[12]    = 0;
-    int p = 0; 
+    char *name = (char *) memman_alloc(memman, 13);
+    name[12] = 0;
+    int p = 0;
     int x = 5;
     for (x = 5; x < 17; x++) {
         if (cmdline[x] != 0) {
-            name[p] = cmdline[x];
-            p++;
+              name[p] = cmdline[x];
+              p++;
         } else {
-            break;
-        }
-    } // for
-
-    name[p] = 0;
-    struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
+              break;
+          }
+    }
+    
+    name[p] = 0;              
+    struct FILEINFO *finfo = (struct FILEINFO*)(ADR_DISKIMG);
     while (finfo->name[0] != 0) {
-        char s[13];
-        s[12] = 0;
-        int k;
-        for (k = 0; k < 8; k++) {
-            if (finfo->name[k] != 0) {
-                s[k] = finfo->name[k];
-            } else {
-                break;
-            }
-        } // for
-        
-        int t   = 0;
-        s[k]    = '.';
-        k++;
-        
-        for (t = 0; t < 3; t++) {
-            s[k] = finfo->ext[t];
-            k++;
-        }
+         char s[13];
+         s[12] = 0;
+         int k;
+         for (k = 0; k < 8; k++) {
+             if (finfo->name[k] != 0) {
+                 s[k] = finfo->name[k];
+             }else {
+                 break;
+                   }
+         }
 
-        if (strcmp(name, s) == 1) {
-            char *p = (char *)FILE_CONTENT_HEAD_ADDR; 
+        int t = 0;
+        s[k] = '.';
+        k++;
+       for (t = 0; t < 3; t++) {
+          s[k] = finfo->ext[t];
+          k++;
+       }
+                                              
+       if (strcmp(name, s) == 1) {
+            char *p = (char *)  FILE_CONTENT_HEAD_ADDR;
             p += finfo->clustno * DISK_SECTOR_SIZE;
             int sz = finfo->size;
             char c[2];
@@ -570,51 +570,51 @@ void cmd_type(char *cmdline) {
                 c[0] = p[t];
                 c[1] = 0;
                 if (c[0] == 0x09) {
-                    // handle tab key
-                    for (;;) {
-                        showString(shtctl, g_Console.sht, g_Console.cur_x,
-                                    g_Console.cur_y, COL8_FFFFFF, " ");
-                        g_Console.cur_x += 8;
-                        
-                        if (g_Console.cur_x == 8 + 240) {
-                            g_Console.cur_x = 8;
-                            g_Console.cur_y = cons_newline(g_Console.cur_y,
-                                                            g_Console.sht);
-                        }
+                    //handle tab key
+                   for(;;) {
+                       showString(shtctl, g_Console.sht, g_Console.cur_x,
+                             g_Console.cur_y, COL8_FFFFFF, " ");
+                       g_Console.cur_x += 8;
 
-                        if ((g_Console.cur_x -8) & 0x1f == 0) {
-                            break;
-                        }
-                    } // for
+                       if (g_Console.cur_x == 8 + 240) {
+                             g_Console.cur_x = 8;
+                             g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
+                       }
+                                        
+                       if ((g_Console.cur_x - 8) & 0x1f == 0) {
+                             break;
+                       }
+                   }
                 } else if (c[0] == 0x0a) {
-                    // handle return 
-                    g_Console.cur_x = 8;
-                    g_Console.cur_y = cons_newline(g_Console.cur_y, 
-                                                    g_Console.sht);
-                } else if (c[0] == 0x0d) {
-                    // do nothing
-                } else {
-                    showString(shtctl, g_Console.sht, g_Console.cur_x,
-                                g_Console.cur_y, COL8_FFFFFF, c);
-                    g_Console.cur_x += 8;
-                    if (g_Console.cur_x == 8 + 240) {
-                        g_Console.cur_x = 16;
-                        g_Console.cur_y = cons_newline(g_Console.cur_y,
-                                                        g_Console.sht);
-                    }
-                }
-            } // for
-		break;
-        } // if
-        finfo++;
-    } // while
-    g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
-    memman_free(memman, (int)name, 13);
+                     //handle return
+                     g_Console.cur_x = 8;
+                     g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
+                 } else if (c[0] == 0x0d) {
+                     //do nothing
+                 } else {
+                     showString(shtctl, g_Console.sht, g_Console.cur_x,g_Console.cur_y, COL8_FFFFFF, c);
+                     g_Console.cur_x += 8;
+                     if (g_Console.cur_x == 8 + 240) {
+                           g_Console.cur_x = 16;
+                           g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);
+                     }
+
+                 }
+           }
+           
+           break;
+     }
+                          
+       finfo++;
+    }
+
+    g_Console.cur_y = cons_newline(g_Console.cur_y, g_Console.sht);  
+    memman_free(memman,(int) name, 13);
     g_Console.cur_x = 16;
+
 }
 
-void cmd_mem(int memtotal)
-{
+void cmd_mem(int memtotal) {
     char *s = intToHexStr(memtotal / (1024));
     showString(shtctl,g_Console.sht,16,g_Console.cur_y,COL8_FFFFFF, "free ");
     showString(shtctl,g_Console.sht,52,g_Console.cur_y, COL8_FFFFFF, s);
@@ -625,35 +625,31 @@ void cmd_mem(int memtotal)
 void cmd_cls() {
     int x = 8;
     int y = 28;
-    for (y = 28; y < 28 + 128; y++) {
+    for (y = 28; y < 28 + 128; y++)
         for (x = 8; x < 8 + 240; x++) {
-            g_Console.sht->buf[x + y * g_Console.sht->bxsize] = COL8_000000;
+             g_Console.sht->buf[x + y * g_Console.sht->bxsize] = COL8_000000;
         }
-    }
 
-    sheet_refresh(shtctl, g_Console.sht, 8, 28, 8 + 240, 28 + 128);
-    g_Console.cur_y = 28;
-    showString(shtctl, g_Console.sht, 8, 28, COL8_FFFFFF, ">");
+        sheet_refresh(shtctl, g_Console.sht, 8, 28, 8+240, 28+128);
+        g_Console.cur_y = 28;
+        showString(shtctl, g_Console.sht, 8, 28, COL8_FFFFFF, ">");
+
 }
+
 
 void cmd_hlt() {
     file_loadfile("abc.exe", &buffer);
     struct SEGMENT_DESCRIPTOR *gdt =(struct SEGMENT_DESCRIPTOR *)get_addr_gdt();
     set_segmdesc(gdt+11, 0xfffff, (int) buffer.pBuffer, 0x409a + 0x60);
     //new memory 
-   char *q = (char *) memman_alloc_4k(memman, 64*1024);
-   buffer.pDataSeg = (unsigned char *)q;
-  //  char *q = (char*) memman_alloc(memman, 1024);
+    char *q = (char *) memman_alloc_4k(memman, 64*1024);
+    buffer.pDataSeg = (unsigned char*)q;
     set_segmdesc(gdt+12, 64 * 1024 - 1,(int) q ,0x4092 + 0x60);
-   // set_segmdesc(gdt+12, 1024 - 1,(int) q ,0x4092 + 0x60);
     struct TASK *task = task_now();
     task->tss.esp0 = 0;
     start_app(0, 11*8,64*1024, 12*8, &(task->tss.esp0));
-   // start_app(0, 11*8, 1024, 12*8, &(task->tss.esp0));
     memman_free_4k(memman,(unsigned int) buffer.pBuffer, buffer.length);
     memman_free_4k(memman, (unsigned int) q, 64 * 1024);
-   // memman_free(memman, (unsigned int)q, 1024);
-
 }
 
 void console_task(struct SHEET *sheet, int memtotal) {
@@ -661,10 +657,10 @@ void console_task(struct SHEET *sheet, int memtotal) {
     struct TIMER *timer;
     struct TASK *task = task_now();
     int i, cursor_c = COL8_000000;
+    
     int x = 0, y = 0;
     char *fifobuf = (char *)memman_alloc(memman, 128);
     char *cmdline = (char *)memman_alloc(memman, 30);
-
 
     g_Console.sht = sheet;
     g_Console.cur_x = 16;
@@ -676,14 +672,13 @@ void console_task(struct SHEET *sheet, int memtotal) {
     timer_init(timer, &task->fifo, 1);
     timer_settime(timer, 50);
 
-
-
     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
     int pos = 0;
-    struct FILEINFO *fileinfo = (struct FILEINFO *)(ADR_DISKIMG);
-	int hlt = 0;
-    for(;;) {
-       
+
+    struct FILEINFO* finfo = (struct FILEINFO*)(ADR_DISKIMG);
+    int hlt = 0;
+
+    for(;;) { 
         io_cli();
         if (fifo8_status(&task->fifo) == 0) {
             //task_sleep(task_cons);
@@ -714,22 +709,25 @@ void console_task(struct SHEET *sheet, int memtotal) {
                 task_run(task_main, -1, 0);
             }
             else if (i == KEY_RETURN) {
+                
                 set_cursor(shtctl, sheet, g_Console.cur_x, g_Console.cur_y, COL8_000000);
                 cmdline[g_Console.cur_x / 8 - 2] = 0;
                 g_Console.cur_y = cons_newline(g_Console.cur_y, sheet); 
                 if (strcmp(cmdline, "mem") == 1) {
-		   cmd_mem(memtotal);
+                   cmd_mem(memtotal);
                 } else if (strcmp(cmdline, "cls") == 1) {
                    cmd_cls();
-                } else if (strcmp(cmdline, "dir") == 1) {
-                   cmd_dir();
                 } else if (strcmp(cmdline, "hlt") == 1) {
                   cmd_hlt();
-				  hlt = 1;
-                } else if (cmdline[0] == 't' && cmdline[1] == 'y' &&
-                            cmdline[2] == 'p' && cmdline[3] == 'e') {
-			cmd_type(cmdline);
-  		}
+                  hlt = 1;
+                } else if (strcmp(cmdline, "dir") == 1) {
+                  cmd_dir();
+                }  
+                else if (cmdline[0] == 't' && cmdline[1] == 'y' &&
+                             cmdline[2] == 'p' && cmdline[3] == 'e') {
+                      cmd_type(cmdline);
+                }
+
                 g_Console.cur_x = 16;
             }
             else if (i == 0x0e && g_Console.cur_x > 8) {
@@ -737,28 +735,31 @@ void console_task(struct SHEET *sheet, int memtotal) {
                     g_Console.cur_x -= 8;
                     set_cursor(shtctl, sheet, g_Console.cur_x, g_Console.cur_y, COL8_000000); 
                 } 
-            else {
+                else {
                        char c = transferScanCode(i);
                        if (g_Console.cur_x < 240 && c!=0 ) {
-                          cmdline[g_Console.cur_x / 8 - 2] = c;
+                           cmdline[g_Console.cur_x / 8 - 2] = c;
                            cmdline[g_Console.cur_x / 8 - 1] = 0;
                            cons_putchar(c, 1);
                        }
                 }
+            
 
             if (cursor_c >= 0) {
                  set_cursor(shtctl, sheet, g_Console.cur_x, g_Console.cur_y, cursor_c);
-            } 
-        }
+            }
         
+     }
 
-    }
+  }
 }
 
 void cons_putstr(char *s) {
     for (; *s != 0; s++) {
         cons_putchar(*s, 1);
     }
+
+    return;
 }
 
 int api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col) {
@@ -809,87 +810,88 @@ int api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col) {
         y += dy;
     }
 }
+
 int* kernel_api(int edi, int esi, int ebp, int esp,
-                int ebx, int edx, int ecx, int eax)
-{
+                int ebx, int edx, int ecx, int eax) {
     struct TASK *task = task_now();
-	struct SHEET *sht;
-	int *reg = &eax + 1;
+    struct SHEET *sht;
+    int  *reg = &eax + 1;
+
     if (edx == 1) {
         cons_putchar(eax & 0xff, 1);
-    } else if (edx == 2) {
-        cons_putstr((char *)(buffer.pBuffer + ebx));
-    } else if (edx == 4) {
+    }else if (edx == 2) {
+        cons_putstr((char*)(buffer.pBuffer + ebx)); 
+    }else if (edx == 4) {
         task->tss.ss0 = 0;
+
+       // return &(task->tss.esp0);
         return &task_cons->tss.esp0;
-    } else if (edx == 5) {
-	
-		sht = sheet_alloc(shtctl);
-		sheet_setbuf(sht, (char *)(ebx+buffer.pDataSeg), esi, edi, eax);
-		make_window8(shtctl, sht, (char *)(ecx+buffer.pBuffer), 0);
-		sheet_slide(shtctl, sht, 100, 50);
-		sheet_updown(shtctl, sht, 3);
-		reg[7] = (int)sht;
-	} else if (edx == 6) {
-		sht = (struct SHEET *)ebx;
-		showString(shtctl, sht, esi, edi, eax, (char *)(ebp+buffer.pBuffer));
-		sheet_refresh(shtctl, sht, esi, edi, esi + ecx * 8, edi+16);
-	} else if (edx == 7) {
-		sht = (struct SHEET *)ebx;
-		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
-		sheet_refresh(shtctl, sht, eax, ecx, esi+1, edi+1);
-	} else if (edx == 11) {
-        sht = (struct SHEET *)ebx;
+    }else if (edx == 5) {
+       
+        sht = sheet_alloc(shtctl);
+        sheet_setbuf(sht, (char*)(ebx + buffer.pDataSeg), esi, edi, eax);
+        make_window8(shtctl, sht , (char*)(ecx+buffer.pBuffer), 0);
+        sheet_slide(shtctl,sht, 100, 50);
+        sheet_updown(shtctl, sht, 3);
+        reg[7] = (int)sht;
+    }else if (edx == 6) {
+        sht = (struct SHEET*)ebx;
+        showString(shtctl, sht, esi, edi, eax, (char*)(ebp+buffer.pBuffer));
+        sheet_refresh(shtctl, sht, esi, edi, esi + ecx*8, edi+16);
+    }else if (edx == 7) {
+        sht = (struct SHEET*)ebx;
+        boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
+        sheet_refresh(shtctl, sht, eax, ecx, esi+1, edi+1); 
+    }else if (edx == 11){
+        sht = (struct SHEET*)ebx;
         sht->buf[sht->bxsize * edi + esi] = eax;
-        // sheet_refresh(shtctl, sht, esi, edi, esi + 1, edi + 1);
-    } else if (edx == 12) {
-		sht = (struct SHEET *)ebx;
-		sheet_refresh(shtctl, sht, eax, ecx, esi, edi);
-	} else if (edx == 13) {
-		sht = (struct SHEET *)ebx;
-		api_linewin(sht, eax, ecx, esi, edi, ebp);
-	}
+       // sheet_refresh(shtctl, sht, esi, edi, esi + 1, edi + 1);
+    }else if (edx == 12) {
+        sht = (struct SHEET*)ebx;
+        sheet_refresh(shtctl, sht, eax, ecx, esi, edi);
+    } else if (edx == 13) {
+        sht = (struct SHEET*)ebx;
+        api_linewin(sht, eax, ecx, esi, edi, ebp);
+    }
 
     return 0;
 }
 
 void cons_putchar(char c, char move) {
-    set_cursor(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y,
-                COL8_000000);
-    g_Console.s[0] = c;
-    g_Console.s[1] = 0;
-    showString(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y,
-                COL8_FFFFFF, g_Console.s);
-    g_Console.cur_x += 8;
+   set_cursor(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y, COL8_000000);
+   g_Console.s[0] = c;
+   g_Console.s[1] = 0;    
+   showString(shtctl, g_Console.sht, g_Console.cur_x, g_Console.cur_y, COL8_FFFFFF, g_Console.s);
+   g_Console.cur_x += 8;
+   
 }
 
-int cons_newline(int cursor_y, struct SHEET *sheet)
-{
+
+int cons_newline(int cursor_y, struct SHEET *sheet) {
     int x, y;
-    
+
     if (cursor_y < 28 + 112) {
-        cursor_y += 16;
+         cursor_y += 16;
     } else {
-        for (y = 28; y < 28+112; y++) {
-            for (x = 8; x < 8 + 240; x++) {
-                sheet->buf[x + y * sheet->bxsize] = 
-                    sheet->buf[x+(y+16)*sheet->bxsize];
-            }
-	}
+         for (y = 28; y < 28 + 112; y++) {
+             for (x = 8; x < 8 + 240; x++) {
+                 sheet->buf[x + y * sheet->bxsize] =
+                 sheet->buf[x + (y + 16) * sheet->bxsize];
+             }
+         }
 
-            for (y = 28 + 112; y < 28 + 128; y++) {
-                for (x = 8; x < 8 + 240; x++) {
-                    sheet->buf[x + y * sheet->bxsize] = COL8_000000;
-                }
-            }
+         for (y = 28 + 112; y < 28 + 128; y++) {
+             for (x = 8; x < 8 + 240; x++) {
+                 sheet->buf[x + y * sheet->bxsize] = COL8_000000;
+             }
+         }
 
-        sheet_refresh(shtctl, sheet, 8, 28, 8 + 240, 28 + 128);
-    } // if
-    showString(shtctl, sheet, 8, cursor_y, COL8_FFFFFF, ">");
+         sheet_refresh(shtctl, sheet, 8, 28, 8+240, 28+128);
+   }
+
+    showString(shtctl, sheet, 8, cursor_y, COL8_FFFFFF, ">"); 
     return cursor_y;
 }
-
-
 
 void init_screen8(char* vram, int xsize, int ysize) {
     boxfill8(vram, xsize, COL8_008484, 0, 0, xsize-1, ysize-29);
@@ -957,7 +959,7 @@ void initBootInfo(struct BOOTINFO *pBootInfo) {
 
 void showString(struct SHTCTL *shtctl ,struct SHEET *sht, int x, int y, char color, unsigned char *s ) {
     int begin = x;
-
+    int i = 0;
     for (; *s != 0x00; s++) {
        showFont8(sht->buf, sht->bxsize, x, y,color, systemFont+ *s * 16);
        x += 8;
@@ -1082,13 +1084,13 @@ int pysize, int px0, int py0, char* buf, int bxsize) {
 
 
 void intHandlerFromC(char* esp) {
+
     char*vram = bootInfo.vgaRam;
     int xsize = bootInfo.screenX, ysize = bootInfo.screenY;
     io_out8(PIC_OCW2, 0x20);
     unsigned char data = 0;
     data = io_in8(PORT_KEYDAT);
     fifo8_put(&keyinfo, data);
-   
     return;
 }
 
@@ -1365,46 +1367,50 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c) {
     boxfill8(sht->buf, sht->bxsize, c, x0 - 1, y0 - 1, x1 + 0, y1 + 0); 
 }
 
-void file_loadfile(char *name, struct Buffer *buffer)
-{
-    struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG);
-    char *s = (char *) memman_alloc(memman, 13);
-    s[12] = 0;
 
-    while (finfo->name[0] != 0) {
-        int k;
-        for (k = 0; k < 8; k++) {
-            if (finfo->name[k] != 0) {
-                s[k] = finfo->name[k];
-            } else {
-                break;
-            }
-        }
+void file_loadfile(char *name, struct Buffer *buffer) {
+     struct FILEINFO *finfo = (struct FILEINFO*)(ADR_DISKIMG);
+     char *s = (char *) memman_alloc(memman, 13);
+     s[12] = 0;
 
-        int t = 0;
-        s[k] = '.';
-        k++;
-        for (t = 0; t < 3; t++) {
-            s[k] = finfo->ext[t];
-            k++;
-        }
+     while (finfo->name[0] != 0) {
+         int k;
+         for (k = 0; k < 8; k++) {
+             if (finfo->name[k] != 0) {
+                 s[k] = finfo->name[k];
+             }else {
+                 break;
+             }
+         }
 
-        if (strcmp(name, s) == 1) {
-            buffer->pBuffer = (char *)memman_alloc_4k(memman, finfo->size);
-            buffer->length  = finfo->size;
-            char *p = (char *)FILE_CONTENT_HEAD_ADDR;
-            p += finfo->clustno * DISK_SECTOR_SIZE;
-            int sz = finfo->size;
-            int t = 0;
-            for (t = 0; t < sz; t++) {
-                buffer->pBuffer[t] = p[t];
-            }
-            break;
-        }
-        finfo++;
-    } // while
+         int t = 0;
+         s[k] = '.';
+         k++;
+         for (t = 0; t < 3; t++) {
+          
+             s[k] = finfo->ext[t];
+             k++;
+         }
+                           
+                           
+         if (strcmp(name, s) == 1) {
+             buffer->pBuffer = (char*)memman_alloc_4k(memman, finfo->size);
+             buffer->length = finfo->size;
+             char *p =  (char*) FILE_CONTENT_HEAD_ADDR;
+             p += finfo->clustno * DISK_SECTOR_SIZE;
+             int sz = finfo->size;
+             int t = 0;
+             for (t = 0; t < sz; t++) {
+                 buffer->pBuffer[t] = p[t];
+             }
+             break;             
+         }
 
-    memman_free(memman, (unsigned int) s, 13);
+         finfo++;
+
+    }
+
+    memman_free(memman,(unsigned int) s, 13);
 }
 
 int* intHandlerForStackOverFlow(int* esp) {
@@ -1424,16 +1430,17 @@ int* intHandlerForStackOverFlow(int* esp) {
     return &(task->tss.esp0);
 }
 
-int* intHandlerException(int *esp)
-{
+int* intHandlerForException(int *esp) {
     g_Console.cur_x = 8;
     cons_putstr("INT 0D ");
     g_Console.cur_x = 8;
     g_Console.cur_y += 16;
-    cons_putstr("General Protected Exception");
+    cons_putstr("General Protected Exception");         
     g_Console.cur_y += 16;
     g_Console.cur_x = 8;
     
     struct TASK *task = task_now();
+    
     return &(task->tss.esp0);
 }
+
