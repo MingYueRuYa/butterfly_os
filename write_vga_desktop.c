@@ -790,7 +790,11 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
 		sht = (struct SHEET *)ebx;
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
 		sheet_refresh(shtctl, sht, eax, ecx, esi+1, edi+1);
-	}
+	} else if (edx == 11) {
+        sht = (struct SHEET *)ebx;
+        sht->buf[sht->bxsize * edi + esi] = eax;
+        sheet_refresh(shtctl, sht, esi, edi, esi + 1, edi + 1);
+    }
 
     return 0;
 }

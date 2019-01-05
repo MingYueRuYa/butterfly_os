@@ -74,5 +74,22 @@ api_boxfilwin: ;void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int 
   pop esi
   pop edi
   ret
-  
+
+api_point:  ; void api_point(int win, int x, int y, int col)
+  push edi
+  push esi
+  push ebx
+  mov edx, 11
+  mov ebx, [esp+16] ; win
+  mov esi, [esp+20] ; x
+  mov edi, [esp+24] ; y
+  mov eax, [esp+28] ; col
+  int 02DH
+  pop ebx
+  pop esi
+  pop edi
+
+
+
 %include "app.asm"
+
