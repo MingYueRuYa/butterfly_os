@@ -470,7 +470,7 @@ AsmConsPutCharHandler equ asm_cons_putchar - $$
     push ds
     push es
     pushad
-    pusdad
+    pushad
 
     ; 把内存段切换到内核
     mov ax, SelectorVram
@@ -482,6 +482,7 @@ AsmConsPutCharHandler equ asm_cons_putchar - $$
     cmp eax, 0
     jne end_app
 
+    popad
     popad
     pop es
     pop ds
