@@ -1430,7 +1430,7 @@ int* intHandlerForStackOverFlow(int* esp) {
     return &(task->tss.esp0);
 }
 
-int* intHandlerForException(int *esp) {
+int* intHandlerException(int *esp) {
     g_Console.cur_x = 8;
     cons_putstr("INT 0D ");
     g_Console.cur_x = 8;

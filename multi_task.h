@@ -1,3 +1,4 @@
+#include "global_define.h"
 
 struct TSS32 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
