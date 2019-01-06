@@ -1,6 +1,7 @@
 struct SHEET {
     unsigned char *buf;
     int bxsize, bysize, vx0, vy0, col_inv, height, flags;
+	struct TASK *task;
 };
 
 #define MAX_SHEETS  256
@@ -30,3 +31,4 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 
 void sheet_free(struct SHTCTL* shtctl,struct SHEET *sht);
+

@@ -141,4 +141,3 @@ api_getkey: ; int api_getkey(int mode)
   ret
   
 %include "app.asm"
-

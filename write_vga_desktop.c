@@ -150,7 +150,7 @@ void init_screen8(char *vram, int x, int y);
 struct SHEET* message_box(struct SHTCTL *shtctl,  char* title);
 void make_window8(struct SHTCTL *shtctl, struct SHEET *sht,  char *title, char act);
 
-static int mx = 0, my = 0;
+static int mx = 0, my = 0, mmx= -1, mmy = -1;
 static int xsize = 0, ysize = 0;
 static  unsigned char *buf_back, buf_mouse[256];
 #define COLOR_INVISIBLE  99
@@ -160,6 +160,7 @@ void make_textbox8(struct SHEET *sht, int x0, int y0, int sx, int sy, int c);
 static struct SHEET* shtMsgBox;
 static struct SHTCTL *shtctl;
 static struct SHEET *sht_back, *sht_mouse;
+static struct SHEET *mouse_clicked_sht;
 
 void  set_cursor(struct SHTCTL *shtctl, struct SHEET *sheet, int cur_x, int cur_y, int cursor_c);
 
@@ -304,6 +305,10 @@ void CMain(void) {
              task_cons->tss.eip = (int)kill_process - addr_code32;
              io_sti();
          }
+		 
+		 if (data == 0x10) {
+		 	sheet_updown(shtctl, shtctl->sheets[1], shtctl->top-1);
+		 }
 
          if (data == 0x0f) {
                int msg = -1;
@@ -974,30 +979,6 @@ void computeMousePosition(struct SHTCTL *shtctl, struct SHEET *sht,struct MOUSE_
 
 }
 
-
-
-void  show_mouse_info(struct SHTCTL *shtctl, struct SHEET *sht_back,struct SHEET *sht_mouse) {
-    char*vram = buf_back;
-    unsigned char data = 0;
-     
-    io_sti();
-    data = fifo8_get(&mouseinfo);
-    if (mouse_decode(&mdec, data) != 0) {
-         computeMousePosition(shtctl, sht_back, &mdec);
-        
-         sheet_slide(shtctl, sht_mouse, mx, my);
-         if ((mdec.btn & 0x01) != 0) {
-            sheet_slide(shtctl, shtMsgBox, mx - 80, my - 8); 
-         }
-    }
-}
-
-void initBootInfo(struct BOOTINFO *pBootInfo) {
-    pBootInfo->vgaRam = (char*)0xe0000000;
-    pBootInfo->screenX = 640;
-    pBootInfo->screenY = 480;
-}
-
 void showString(struct SHTCTL *shtctl ,struct SHEET *sht, int x, int y, char color, unsigned char *s ) {
     int begin = x;
     int i = 0;
@@ -1008,6 +989,68 @@ void showString(struct SHTCTL *shtctl ,struct SHEET *sht, int x, int y, char col
 
     sheet_refresh(shtctl, sht, begin, y, x , y + 16); 
 }
+
+
+void  show_mouse_info(struct SHTCTL *shtctl, struct SHEET *sht_back,struct SHEET *sht_mouse) {
+   char*vram = buf_back;
+    unsigned char data = 0;
+    int j; 
+    struct SHEET *sht = 0;
+    int x, y;
+    io_sti();
+    data = fifo8_get(&mouseinfo);
+    if (mouse_decode(&mdec, data) != 0) {
+         computeMousePosition(shtctl, sht_back, &mdec);
+        
+         sheet_slide(shtctl, sht_mouse, mx, my);
+         if ((mdec.btn & 0x01) != 0) { 
+            if (mmx < 0) {
+                for (j = shtctl->top - 1; j > 0; j--) {
+                    sht = shtctl->sheets[j];
+                    x = mx - sht->vx0;
+                    y = my - sht->vy0;
+                    if (0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize) {
+                        if (sht->buf[y * sht->bxsize + x] != sht->col_inv) {
+                            sheet_updown(shtctl ,sht, shtctl->top - 1);
+                            if (3 <= x && x <sht->bxsize - 3 && 3 <= y && y < 21) {
+                                mmx = mx;
+                                mmy = my;
+                                mouse_clicked_sht = sht;
+                            }
+
+                            if (sht->bxsize - 21 <= x && x < sht->bxsize - 5 && 5 <= y && y < 19 && sht->task != 0) {
+                                    io_cli();
+                                    sheet_free(shtctl, sht);
+                                    int addr_code32 = get_code32_addr();
+                                    sht->task->tss.eip = (int)kill_process - addr_code32;
+                                    io_sti();
+                            }
+                            break;
+                        }
+                    }   
+                }
+            } else {
+                x = mx - mmx;
+                y = my - mmy;
+                sheet_slide(shtctl, mouse_clicked_sht, mouse_clicked_sht->vx0 + x, mouse_clicked_sht->vy0 + y);
+                mmx = mx;
+                mmy = my;
+            }  
+         } else {
+            mmx = -1;
+          // showString(shtctl, sht_back, 0, 207, COL8_FFFFFF, "set mmx to -1");
+         }
+    }
+
+}
+
+
+void initBootInfo(struct BOOTINFO *pBootInfo) {
+    pBootInfo->vgaRam = (char*)0xe0000000;
+    pBootInfo->screenX = 640;
+    pBootInfo->screenY = 480;
+}
+
 
 void init_palette(void) {
     static  unsigned char table_rgb[16 *3] = {

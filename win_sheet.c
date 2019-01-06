@@ -1,4 +1,6 @@
 #include "mem_util.h"
+#include "global_define.h"
+#include "multi_task.h"
 #include "win_sheet.h"
 
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram,
@@ -21,6 +23,7 @@ struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram,
     ctl->top = -1;
     for (i = 0; i < MAX_SHEETS; i++) {
         ctl->sheets0[i].flags = 0;
+		ctl->sheets0[i].task  = 0;
     }
 
     return ctl;
@@ -36,6 +39,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl) {
             ctl->sheets[i] = sht;
             sht->flags = SHEET_USE;
             sht->height = -1;
+			sht->task = task_now();
             return sht;
         }
     }
@@ -216,3 +220,4 @@ void sheet_free(struct SHTCTL *shtctl, struct SHEET *sht)
   sht->flags = 0;
   return;
 }
+
