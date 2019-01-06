@@ -878,7 +878,8 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
         reg[7] = (int)sht;
     }else if (edx == 6) {
         sht = (struct SHEET*)ebx;
-        showString(shtctl, sht, esi, edi, eax, (char*)(ebp+buffer.pBuffer));
+        //showString(shtctl, sht, esi, edi, eax, (char*)(ebp+buffer.pBuffer));
+        showString(shtctl, sht, esi, edi, eax, (char*)(ebp+buffer.pDataSeg));
         sheet_refresh(shtctl, sht, esi, edi, esi + ecx*8, edi+16);
     }else if (edx == 7) {
         sht = (struct SHEET*)ebx;
@@ -898,6 +899,14 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
 		sheet_free(shtctl, (struct SHEET *)ebx);
 	} else if (edx == 15) {
 		handle_keyboard(task, eax, reg);
+	} else if (edx == 16) {
+		reg[7] = (int)timer_alloc();
+	} else if (edx == 17) {
+        timer_init((struct TIMER*)ebx, &task->fifo, eax+256);
+	} else if (edx == 18) {
+		timer_settime((struct TIMER *)ebx, eax);
+	} else if (edx == 19) {
+		timer_free((struct TIMER *)ebx);
 	}
 
     return 0;
@@ -1073,6 +1082,19 @@ void init_palette(void) {
     };
  
     set_palette(0, 15, table_rgb);
+	unsigned char table2[216 * 3];
+    int r, g, b;
+    for (b = 0; b < 6; b++) {
+       for (g = 0; g < 6; g++) {
+           for (r = 0; r < 6; r++) {
+               table2[(r + g*6 + b *36)*3 + 0] = r * 51;
+               table2[(r + g*6 + b *36)*3 + 1] = g * 51;
+               table2[(r + g*6 + b *36)*3 + 2] = b * 51;
+           }
+       }
+    }
+
+    set_palette(16, 231, table2);
     return;
 }
 

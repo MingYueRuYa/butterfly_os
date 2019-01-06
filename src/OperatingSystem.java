@@ -72,7 +72,7 @@ public class OperatingSystem {
         header.setFileDate(date);
         String s = "abc.exe";
 
-        byte[] bbuf = new byte[1024];
+        byte[] bbuf = new byte[2048];
         File file = new File("hlt.bat");
         InputStream in = null;
         try {
