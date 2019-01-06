@@ -207,3 +207,12 @@ void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 
     return;
 }
+
+void sheet_free(struct SHTCTL *shtctl, struct SHEET *sht)
+{
+  if (sht->height >= 0) {
+     sheet_updown(shtctl, sht, -1);
+  }
+  sht->flags = 0;
+  return;
+}

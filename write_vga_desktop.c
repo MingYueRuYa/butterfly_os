@@ -42,6 +42,7 @@ void set_palette(int start, int end, unsigned char *rgb);
 void boxfill8(unsigned char *vram,int xsize,  unsigned char c, int x, int y,
 int x0, int y0);
 
+int g_hlt = 0;
 
 int get_leds();
 void start_app(int eip, int cs, int esp, int ds, int *esp0);
@@ -50,6 +51,7 @@ struct CONSOLE {
     struct SHEET *sht;
     int cur_x, cur_y, cur_c;
     char s[2];
+	struct TIMER *timer;
 };
 
 static struct CONSOLE g_Console;
@@ -671,6 +673,7 @@ void console_task(struct SHEET *sheet, int memtotal) {
     timer = timer_alloc();
     timer_init(timer, &task->fifo, 1);
     timer_settime(timer, 50);
+	g_Console.timer = timer;
 
     showString(shtctl, sheet, 8, 28, COL8_FFFFFF, ">");
     int pos = 0;
@@ -686,6 +689,9 @@ void console_task(struct SHEET *sheet, int memtotal) {
         } else {
             io_sti();
             i = fifo8_get(&task->fifo);
+			if (hlt == 1) {
+				showString(shtctl, sht_back, 0, 232, COL8_000000, "keyboard receive");
+			}
 
             if (i <= 1 && cursor_c >= 0) {
                 if (i != 0) {
@@ -718,8 +724,8 @@ void console_task(struct SHEET *sheet, int memtotal) {
                 } else if (strcmp(cmdline, "cls") == 1) {
                    cmd_cls();
                 } else if (strcmp(cmdline, "hlt") == 1) {
+                  g_hlt = 1;
                   cmd_hlt();
-                  hlt = 1;
                 } else if (strcmp(cmdline, "dir") == 1) {
                   cmd_dir();
                 }  
@@ -811,6 +817,37 @@ int api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col) {
     }
 }
 
+int handle_keyboard(struct TASK *task, int eax, int *reg)
+{
+	int i;
+	struct TIMER *timer = g_Console.timer;
+	for (;;) {
+		if (fifo8_status(&task->fifo) == 0) {
+			if (eax != 0) {
+				continue;
+			} else {
+				io_sti();
+				reg[7] = -1;
+				return 0;
+			}
+			
+		}
+		
+		i = fifo8_get(&task->fifo);
+		if (i <= 1) {
+			timer_init(timer, &task->fifo, 1);
+			timer_settime(timer, 50);
+		} else if (i == 2) {
+			g_Console.cur_c = COL8_FFFFFF;
+		} else {
+			reg[7] = i;
+			return 0;
+		}
+		
+	}
+
+	return 0;
+}
 int* kernel_api(int edi, int esi, int ebp, int esp,
                 int ebx, int edx, int ecx, int eax) {
     struct TASK *task = task_now();
@@ -852,7 +889,11 @@ int* kernel_api(int edi, int esi, int ebp, int esp,
     } else if (edx == 13) {
         sht = (struct SHEET*)ebx;
         api_linewin(sht, eax, ecx, esi, edi, ebp);
-    }
+    } else if (edx == 14) {
+		sheet_free(shtctl, (struct SHEET *)ebx);
+	} else if (edx == 15) {
+		handle_keyboard(task, eax, reg);
+	}
 
     return 0;
 }

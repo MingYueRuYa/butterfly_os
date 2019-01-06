@@ -6,6 +6,8 @@ void api_boxfilwin(int win, int x0, int y0, int x1, int y1, int col);
 void api_point(int win, int x, int y, int col);
 void api_refreshwin(int win, int x0, int y0, int x1, int y1);
 void api_linewin(int win, int x0, int y0, int x1, int y1, int col);
+void api_closewin(int win);
+int api_getkey(int mode);
 
 #define _A 214013LL
 #define _B 2531011LL
@@ -40,7 +42,13 @@ void main()
     }
     
     api_refreshwin(win, 6, 26, 154, 90);
-
+	
+	for (;;) {
+		if (api_getkey(1) == 0x1c) {
+			break;
+		}
+	}
+	api_closewin(win);
 
     return;
 }

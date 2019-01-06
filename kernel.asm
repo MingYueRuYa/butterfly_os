@@ -477,7 +477,7 @@ AsmConsPutCharHandler equ asm_cons_putchar - $$
     mov ds, ax
     mov es, ax
     mov  gs, ax
-    
+    sti
     call kernel_api 
     cmp eax, 0
     jne end_app

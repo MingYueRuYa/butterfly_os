@@ -126,5 +126,19 @@ api_linewin:  ; void api_linewin(int win, int x0, int y0, int x1, int y1, int co
   pop edi
   ret
 
+api_closewin: ; void api_closewin(int win)
+  push ebx
+  mov edx, 14
+  mov ebx, [esp+8]
+  int 02Dh
+  pop ebx
+  ret
+  
+api_getkey: ; int api_getkey(int mode)
+  mov edx, 15
+  mov eax, [esp+4] ; mode
+  int 02Dh
+  ret
+  
 %include "app.asm"
 
